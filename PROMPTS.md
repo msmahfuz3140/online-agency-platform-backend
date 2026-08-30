@@ -9,14 +9,14 @@ Rules:
 
 ## PART A — AGENCY WEBSITE
 
-### Prompt 1 — Project Initialization
+### Prompt 1 — Project Initialization [x] (Completed)
 ```
 @PROJECT_CONTEXT.md
 Initialize the project structure exactly as described in PROJECT_CONTEXT.md:
-- Create /frontend as a Next.js app (App Router, TypeScript, Tailwind CSS)
-- Create /backend as an Express.js app with a basic server.js/index.js
-- Add package.json scripts to run both in dev mode
-- Install framer-motion and recharts in /frontend (do not use them yet, just install)
+- [x] Create /frontend as a Next.js app (App Router, TypeScript, Tailwind CSS)
+- [x] Create /backend as an Express.js app with a basic server.js/index.js
+- [x] Add package.json scripts to run both in dev mode
+- [x] Install framer-motion and recharts in /frontend (do not use them yet, just install)
 Do not add any pages, routes, or models yet. Just the base setup.
 ```
 

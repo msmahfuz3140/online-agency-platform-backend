@@ -10,12 +10,12 @@ Build order: **Agency Website first (fully working) → then add AI Website Gene
 
 ### A1. Project Setup
 - [x] Create `/frontend` (Next.js, App Router, TypeScript)
-- [ ] Create `/backend` (Express.js)
+- [x] Create `/backend` (Express.js)
 - [ ] Setup MongoDB Atlas cluster + connection string
 - [ ] Connect backend to MongoDB via Mongoose
 - [ ] Setup Better Auth in backend (verify Mongoose adapter support first — see PROJECT_CONTEXT.md)
 - [ ] Setup environment variables (.env) for both frontend and backend — DB URI, auth secrets, API keys, Cloudinary keys
-- [ ] Install `framer-motion` and `recharts` in `/frontend`
+- [x] Install `framer-motion` and `recharts` in `/frontend`
 
 ### A2. Design System (do this before building pages — critical for "premium" look)
 - [ ] Choose a design direction (e.g., modern minimal, dark-mode tech agency, bold colorful) — pick ONE, stay consistent
