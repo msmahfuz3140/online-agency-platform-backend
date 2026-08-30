@@ -21,6 +21,23 @@ export function createAuth() {
     trustedOrigins: [
       process.env.CLIENT_URL || "http://localhost:3000",
     ],
+    // Extend the built-in user table with our custom fields
+    user: {
+      additionalFields: {
+        role: {
+          type: "string",
+          required: false,
+          defaultValue: "user",
+          input: false, // not accepted from client on sign-up
+        },
+        aiCreditsRemaining: {
+          type: "number",
+          required: false,
+          defaultValue: 5,
+          input: false, // not accepted from client on sign-up
+        },
+      },
+    },
   });
 }
 

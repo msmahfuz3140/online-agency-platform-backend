@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import { connectDB } from "./config/db.js";
 import { getAuth } from "./config/auth.js";
 import { toNodeHandler } from "better-auth/node";
+import userRoutes from "./routes/user.routes.js";
 
 dotenv.config();
 
@@ -35,18 +36,25 @@ app.get("/api/health", (_req: Request, res: Response) => {
   });
 });
 
-// Bootstrap: connect DB first, then mount Better Auth and start server
+// Bootstrap: connect DB first, then mount routes and start server
 async function bootstrap() {
   await connectDB();
 
-  // Mount Better Auth routes at /api/auth/*
-  // Better Auth handles all auth routes internally (login, register, logout, session, etc.)
+  // Better Auth handles all auth routes: register, login, logout, session, etc.
+  // POST /api/auth/sign-up/email  → register
+  // POST /api/auth/sign-in/email  → login
+  // POST /api/auth/sign-out       → logout
+  // GET  /api/auth/session        → current session
   const auth = getAuth();
   app.all("/api/auth/*splat", toNodeHandler(auth.handler));
 
+  // Application routes
+  app.use("/api/user", userRoutes);
+
   app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
-    console.log(`🔐 Auth routes available at http://localhost:${PORT}/api/auth`);
+    console.log(`🔐 Auth routes: POST /api/auth/sign-up/email | POST /api/auth/sign-in/email | POST /api/auth/sign-out`);
+    console.log(`👤 User routes: GET /api/user/me`);
   });
 }
 
