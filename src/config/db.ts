@@ -1,26 +1,24 @@
 import mongoose from "mongoose";
 
-const MONGODB_URI = process.env.MONGODB_URI;
-
-if (!MONGODB_URI) {
-  throw new Error("MONGODB_URI is not defined in environment variables");
-}
-
 let isConnected = false;
 
-export async function connectDB(): Promise<void> {
+export async function connectDB(): Promise<boolean> {
   if (isConnected) {
     console.log("⚡ Using existing MongoDB connection");
-    return;
+    return true;
   }
 
+  const uri = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/agency-platform";
+
   try {
-    await mongoose.connect(MONGODB_URI as string);
+    await mongoose.connect(uri, { serverSelectionTimeoutMS: 2000, connectTimeoutMS: 2000 });
     isConnected = true;
-    console.log("✅ MongoDB connected successfully");
-  } catch (error) {
-    console.error("❌ MongoDB connection failed:", error);
-    process.exit(1);
+    console.log("✅ MongoDB connected successfully to:", uri);
+    return true;
+  } catch (error: any) {
+    console.warn(`⚠️ MongoDB connection not established (${error?.message || "offline"}). Server will continue running.`);
+    isConnected = false;
+    return false;
   }
 }
 

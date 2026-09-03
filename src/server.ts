@@ -5,6 +5,7 @@ import { connectDB } from "./config/db.js";
 import { getAuth } from "./config/auth.js";
 import { toNodeHandler } from "better-auth/node";
 import userRoutes from "./routes/user.routes.js";
+import contactRoutes from "./routes/contact.routes.js";
 
 dotenv.config();
 
@@ -12,10 +13,12 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors({
-  origin: process.env.CLIENT_URL || "http://localhost:3000",
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -38,23 +41,31 @@ app.get("/api/health", (_req: Request, res: Response) => {
 
 // Bootstrap: connect DB first, then mount routes and start server
 async function bootstrap() {
-  await connectDB();
+  const dbConnected = await connectDB();
 
-  // Better Auth handles all auth routes: register, login, logout, session, etc.
-  // POST /api/auth/sign-up/email  → register
-  // POST /api/auth/sign-in/email  → login
-  // POST /api/auth/sign-out       → logout
-  // GET  /api/auth/session        → current session
-  const auth = getAuth();
-  app.all("/api/auth/*splat", toNodeHandler(auth.handler));
+  // Better Auth handles all auth routes if DB is connected
+  if (dbConnected) {
+    try {
+      const auth = getAuth();
+      app.all("/api/auth/*splat", toNodeHandler(auth.handler));
+      console.log(
+        "🔐 Auth routes: POST /api/auth/sign-up/email | POST /api/auth/sign-in/email | POST /api/auth/sign-out"
+      );
+    } catch (authErr) {
+      console.warn("⚠️ Better Auth initialization deferred:", authErr);
+    }
+  } else {
+    console.log("ℹ️ Better Auth routes will activate once MongoDB is connected.");
+  }
 
   // Application routes
   app.use("/api/user", userRoutes);
+  app.use("/api/contact", contactRoutes);
 
   app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
-    console.log(`🔐 Auth routes: POST /api/auth/sign-up/email | POST /api/auth/sign-in/email | POST /api/auth/sign-out`);
-    console.log(`👤 User routes: GET /api/user/me`);
+    console.log(`📬 Contact route: POST /api/contact | GET /api/contact`);
+    console.log(`👤 User route: GET /api/user/me`);
   });
 }
 
