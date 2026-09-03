@@ -6,6 +6,7 @@ import { getAuth } from "./config/auth.js";
 import { toNodeHandler } from "better-auth/node";
 import userRoutes from "./routes/user.routes.js";
 import contactRoutes from "./routes/contact.routes.js";
+import authFallbackRoutes from "./routes/auth-fallback.routes.js";
 
 dotenv.config();
 
@@ -43,19 +44,21 @@ app.get("/api/health", (_req: Request, res: Response) => {
 async function bootstrap() {
   const dbConnected = await connectDB();
 
-  // Better Auth handles all auth routes if DB is connected
+  // Better Auth handles all auth routes if DB is connected, with dev fallback
   if (dbConnected) {
     try {
       const auth = getAuth();
       app.all("/api/auth/*splat", toNodeHandler(auth.handler));
       console.log(
-        "🔐 Auth routes: POST /api/auth/sign-up/email | POST /api/auth/sign-in/email | POST /api/auth/sign-out"
+        "🔐 Better Auth live: POST /api/auth/sign-up/email | POST /api/auth/sign-in/email | POST /api/auth/sign-out"
       );
     } catch (authErr) {
-      console.warn("⚠️ Better Auth initialization deferred:", authErr);
+      console.warn("⚠️ Better Auth initialization deferred, using dev fallback:", authErr);
+      app.use("/api/auth", authFallbackRoutes);
     }
   } else {
-    console.log("ℹ️ Better Auth routes will activate once MongoDB is connected.");
+    console.log("ℹ️ Better Auth fallback router mounted (ready for testing without live MongoDB).");
+    app.use("/api/auth", authFallbackRoutes);
   }
 
   // Application routes
