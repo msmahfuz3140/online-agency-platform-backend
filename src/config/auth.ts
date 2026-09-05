@@ -8,18 +8,41 @@ export function createAuth() {
   const client = getMongoClient();
   const db = client.db(DB_NAME);
 
+  const socialProviders: Record<string, any> = {};
+
+  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    socialProviders.google = {
+      clientId: process.env.GOOGLE_CLIENT_ID.trim(),
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET.trim(),
+    };
+  }
+
+  if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
+    socialProviders.github = {
+      clientId: process.env.GITHUB_CLIENT_ID.trim(),
+      clientSecret: process.env.GITHUB_CLIENT_SECRET.trim(),
+    };
+  }
+
   return betterAuth({
     database: mongodbAdapter(db),
+    baseURL: process.env.BETTER_AUTH_URL || "http://localhost:5000",
+    secret:
+      process.env.BETTER_AUTH_SECRET ||
+      "nexora_agency_super_secret_auth_key_2025_prod_dev_32chars",
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: false,
     },
+    socialProviders:
+      Object.keys(socialProviders).length > 0 ? socialProviders : undefined,
     session: {
       expiresIn: 60 * 60 * 24 * 7, // 7 days
       updateAge: 60 * 60 * 24,       // Refresh session if older than 1 day
     },
     trustedOrigins: [
       process.env.CLIENT_URL || "http://localhost:3000",
+      "http://localhost:3000",
     ],
     // Extend the built-in user table with our custom fields
     user: {

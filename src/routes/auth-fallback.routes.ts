@@ -190,4 +190,57 @@ router.get(["/get-session", "/session"], (_req: Request, res: Response): void =>
   });
 });
 
+/**
+ * POST /api/auth/sign-in/social (Development fallback)
+ */
+router.post("/sign-in/social", (req: Request, res: Response): void => {
+  const { provider = "google", callbackURL } = req.body;
+
+  const targetProvider = (provider as string).toLowerCase();
+  const userName =
+    targetProvider === "github" ? "GitHub Developer" : "Google User";
+  const userEmail =
+    targetProvider === "github" ? "dev@github.nexora" : "user@gmail.nexora";
+
+  let user = devUsers.find((u) => u.email === userEmail);
+  if (!user) {
+    user = {
+      id: `usr_${targetProvider}_${Date.now()}`,
+      name: userName,
+      email: userEmail,
+      passwordHash: "oauth_simulated",
+      role: "user",
+      aiCreditsRemaining: 5,
+      createdAt: new Date(),
+    };
+    devUsers.push(user);
+  }
+
+  const token = `tok_${targetProvider}_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  activeSession = { user, token };
+
+  res.cookie("better-auth.session_token", token, {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+  });
+
+  const clientBase = process.env.CLIENT_URL || "http://localhost:3000";
+  const redirectTarget = callbackURL || `${clientBase}/dashboard`;
+
+  res.status(200).json({
+    url: redirectTarget,
+    redirect: true,
+    token,
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      aiCreditsRemaining: user.aiCreditsRemaining,
+    },
+  });
+});
+
 export default router;
+
