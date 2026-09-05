@@ -12,6 +12,7 @@ import serviceRoutes from "./routes/service.routes.js";
 import projectRoutes from "./routes/project.routes.js";
 import teamRoutes from "./routes/team.routes.js";
 import blogRoutes from "./routes/blog.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
 import { autoSeedDatabase } from "./config/seeder.js";
 
 dotenv.config();
@@ -79,6 +80,7 @@ async function bootstrap() {
   app.use("/api/portfolio", projectRoutes);
   app.use("/api/team", teamRoutes);
   app.use("/api/blog", blogRoutes);
+  app.use("/api/admin", adminRoutes);
 
   app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
@@ -89,6 +91,7 @@ async function bootstrap() {
     console.log(`🎨 Portfolio route: GET /api/portfolio`);
     console.log(`👥 Team route: GET /api/team`);
     console.log(`📝 Blog route: GET /api/blog`);
+    console.log(`🛡️  Admin route: GET /api/admin/stats | /users | /requests | /messages`);
   });
 }
 
