@@ -21,9 +21,22 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
+const allowedOrigins = Array.from(
+  new Set([
+    "http://localhost:3000",
+    "http://localhost:3001",
+    process.env.CLIENT_URL || "http://localhost:3000",
+  ])
+);
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(null, true); // Permissive in dev mode
+    },
     credentials: true,
   })
 );

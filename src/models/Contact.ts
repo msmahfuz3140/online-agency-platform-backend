@@ -1,17 +1,64 @@
 import mongoose, { Document, Schema, Model } from "mongoose";
 
+export interface IReply {
+  _id?: string;
+  sender: "admin" | "user";
+  senderName: string;
+  senderEmail?: string;
+  message: string;
+  createdAt: Date;
+}
+
 export interface IContact extends Document {
   name: string;
   email: string;
   message: string;
   subject?: string;
+  category?: string;
   phone?: string;
   company?: string;
   status: "unread" | "read" | "archived" | "replied";
+  replies: IReply[];
+  userId?: string;
   ipAddress?: string;
   createdAt: Date;
   updatedAt: Date;
 }
+
+const replySchema = new Schema<IReply>(
+  {
+    sender: {
+      type: String,
+      enum: ["admin", "user"],
+      required: true,
+      default: "admin",
+    },
+    senderName: {
+      type: String,
+      required: true,
+      trim: true,
+      default: "Admin Support",
+    },
+    senderEmail: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      default: "",
+    },
+    message: {
+      type: String,
+      required: true,
+      trim: true,
+      minlength: 1,
+      maxlength: 5000,
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { _id: true }
+);
 
 const contactSchema = new Schema<IContact>(
   {
@@ -45,6 +92,11 @@ const contactSchema = new Schema<IContact>(
       maxlength: [200, "Subject cannot exceed 200 characters"],
       default: "General Inquiry",
     },
+    category: {
+      type: String,
+      trim: true,
+      default: "",
+    },
     phone: {
       type: String,
       trim: true,
@@ -60,6 +112,14 @@ const contactSchema = new Schema<IContact>(
       enum: ["unread", "read", "archived", "replied"],
       default: "unread",
     },
+    replies: {
+      type: [replySchema],
+      default: [],
+    },
+    userId: {
+      type: String,
+      default: "",
+    },
     ipAddress: {
       type: String,
       default: "",
@@ -74,3 +134,4 @@ export const Contact: Model<IContact> =
   mongoose.models.Contact || mongoose.model<IContact>("Contact", contactSchema);
 
 export default Contact;
+

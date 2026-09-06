@@ -1,6 +1,7 @@
-﻿import { Router, Request, Response } from "express";
+import { Router, Request, Response } from "express";
 import mongoose from "mongoose";
 import ProjectRequest from "../models/ProjectRequest.js";
+import { sendProjectRequestEmails } from "../services/email.service.js";
 
 const router = Router();
 
@@ -85,8 +86,53 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       budget,
       timeline,
       status: "pending" as const,
+      progress: 0,
+      leadEngineer: {
+        name: "MD Mahfuzul Haque",
+        role: "Founder & Lead Architect",
+        avatar: "MH",
+      },
+      sprintPhase: "Phase 1: Requirements Scoping & Architecture",
+      targetLaunch: "Within 2-4 Weeks",
+      stagingUrl: "",
+      deliverables: [
+        {
+          id: `del_${Date.now()}_1`,
+          title: "Project Scope & Architecture Blueprint",
+          completed: true,
+        },
+        {
+          id: `del_${Date.now()}_2`,
+          title: "UI/UX Components & Responsive Layouts",
+          completed: false,
+        },
+        {
+          id: `del_${Date.now()}_3`,
+          title: "Core Business Logic & Backend Integration",
+          completed: false,
+        },
+        {
+          id: `del_${Date.now()}_4`,
+          title: "Staging Deployment & Production QA Audit",
+          completed: false,
+        },
+      ],
+      updates: [
+        {
+          id: `upd_${Date.now()}_1`,
+          title: "Inquiry Received & Logged",
+          note: "Your project specifications have been submitted to MD Mahfuzul Haque and the engineering team.",
+          date: new Date(),
+          postedBy: "Nexora System",
+        },
+      ],
       ipAddress,
     };
+
+    // Asynchronously dispatch transactional emails (non-blocking)
+    sendProjectRequestEmails(requestData as any).catch((err) =>
+      console.error("❌ Error dispatching project request emails:", err)
+    );
 
     if (mongoose.connection.readyState === 1) {
       const saved = await ProjectRequest.create(requestData);
@@ -95,6 +141,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         message: "Your project request has been received! Our team will review it and get back to you within 24 hours.",
         data: {
           id: saved._id,
+          _id: saved._id,
           projectTitle: saved.projectTitle,
           status: saved.status,
           createdAt: saved.createdAt,
@@ -114,6 +161,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       message: "Your project request has been received! Our team will review it and get back to you within 24 hours.",
       data: {
         id: fallbackId,
+        _id: fallbackId,
         projectTitle: requestData.projectTitle,
         status: requestData.status,
         createdAt: fallbackItem.createdAt,
@@ -129,6 +177,151 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 });
 
 /**
+ * GET /api/project-request/my-requests
+ * Fetch project requests for a specific client (by email, userId, or tracked IDs)
+ */
+router.get("/my-requests", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, userId, ids, all } = req.query;
+
+    if (all === "true") {
+      if (mongoose.connection.readyState === 1) {
+        const allList = await ProjectRequest.find().sort({ createdAt: -1 }).limit(50);
+        res.json({ success: true, count: allList.length, data: allList });
+        return;
+      }
+      res.json({ success: true, count: inMemoryRequests.length, data: inMemoryRequests });
+      return;
+    }
+
+    const orConditions: any[] = [];
+    if (email && typeof email === "string" && email.trim()) {
+      orConditions.push({ clientEmail: email.trim().toLowerCase() });
+    }
+    if (userId && typeof userId === "string" && userId.trim()) {
+      orConditions.push({ clientId: userId.trim() });
+    }
+    if (ids && typeof ids === "string" && ids.trim()) {
+      const idList = ids.split(",").map((s) => s.trim()).filter(Boolean);
+      const validObjIds = idList.filter((id) => mongoose.isValidObjectId(id));
+      if (validObjIds.length > 0) {
+        orConditions.push({ _id: { $in: validObjIds } });
+      }
+    }
+
+    if (orConditions.length === 0) {
+      // Fallback: return most recent requests so user is never empty in dev
+      if (mongoose.connection.readyState === 1) {
+        const recent = await ProjectRequest.find().sort({ createdAt: -1 }).limit(10);
+        res.json({ success: true, count: recent.length, data: recent });
+        return;
+      }
+      res.json({ success: true, count: inMemoryRequests.length, data: inMemoryRequests.slice(0, 10) });
+      return;
+    }
+
+    if (mongoose.connection.readyState === 1) {
+      const matched = await ProjectRequest.find({ $or: orConditions }).sort({ createdAt: -1 });
+      res.json({ success: true, count: matched.length, data: matched });
+      return;
+    }
+
+    // In-memory fallback
+    const matchedMem = inMemoryRequests.filter((r: any) => {
+      if (email && r.clientEmail === String(email).toLowerCase()) return true;
+      if (userId && r.clientId === String(userId)) return true;
+      return false;
+    });
+
+    res.json({
+      success: true,
+      count: matchedMem.length,
+      data: matchedMem.length > 0 ? matchedMem : inMemoryRequests.slice(0, 5),
+    });
+  } catch (error: any) {
+    console.error("Error fetching client project requests:", error);
+    res.status(500).json({ success: false, error: "Failed to fetch project requests." });
+  }
+});
+
+/**
+ * POST /api/project-request/:id/review
+ * Client submits review, rating (1-5), feedback, and approval
+ */
+router.post("/:id/review", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { rating, feedback, approved } = req.body;
+
+    const numRating = Number(rating);
+    if (!numRating || numRating < 1 || numRating > 5) {
+      res.status(400).json({ success: false, error: "Please provide a valid rating between 1 and 5." });
+      return;
+    }
+
+    const reviewData = {
+      rating: numRating,
+      feedback: typeof feedback === "string" ? feedback.trim() : "",
+      approved: Boolean(approved),
+      submittedAt: new Date(),
+    };
+
+    const updatePayload: any = {
+      review: reviewData,
+    };
+
+    // If client approves, transition to completed
+    if (approved) {
+      updatePayload.status = "completed";
+      updatePayload.progress = 100;
+    }
+
+    if (mongoose.connection.readyState === 1 && mongoose.isValidObjectId(id)) {
+      const updated = await ProjectRequest.findByIdAndUpdate(
+        id,
+        {
+          $set: updatePayload,
+          $push: {
+            updates: {
+              id: `upd_${Date.now()}`,
+              title: approved ? "Client Approved Deliverables" : "Client Review Submitted",
+              note: `Client submitted a ${numRating}★ review${feedback ? `: "${feedback.slice(0, 80)}..."` : "."}`,
+              date: new Date(),
+              postedBy: "Client QA",
+            },
+          },
+        },
+        { new: true }
+      );
+
+      if (!updated) {
+        res.status(404).json({ success: false, error: "Project request not found." });
+        return;
+      }
+
+      res.json({ success: true, message: "Thank you! Your review has been recorded.", data: updated });
+      return;
+    }
+
+    // Fallback: in-memory
+    const idx = inMemoryRequests.findIndex((r: any) => r._id === id || String(r._id) === id);
+    if (idx !== -1) {
+      inMemoryRequests[idx] = {
+        ...inMemoryRequests[idx],
+        ...updatePayload,
+      };
+      res.json({ success: true, message: "Review recorded (memory).", data: inMemoryRequests[idx] });
+      return;
+    }
+
+    res.status(404).json({ success: false, error: "Project request not found." });
+  } catch (error: any) {
+    console.error("Error submitting client review:", error);
+    res.status(500).json({ success: false, error: "Failed to submit review." });
+  }
+});
+
+/**
  * GET /api/project-request
  * List project requests (admin use) — most recent first
  */
@@ -137,8 +330,7 @@ router.get("/", async (_req: Request, res: Response): Promise<void> => {
     if (mongoose.connection.readyState === 1) {
       const requests = await ProjectRequest.find()
         .sort({ createdAt: -1 })
-        .limit(100)
-        .select("-adminNotes -ipAddress");
+        .limit(100);
       res.json({ success: true, count: requests.length, data: requests });
       return;
     }
@@ -161,13 +353,20 @@ router.patch("/:id/status", async (req: Request, res: Response): Promise<void> =
     const { id } = req.params;
     const { status, adminNotes } = req.body;
 
-    const validStatuses = ["pending","in-progress","completed","cancelled"];
+    const validStatuses = [
+      "pending",
+      "reviewing",
+      "in-progress",
+      "review-ready",
+      "completed",
+      "cancelled",
+    ];
     if (!status || !validStatuses.includes(status)) {
       res.status(400).json({ success: false, error: "Invalid status value." });
       return;
     }
 
-    if (mongoose.connection.readyState === 1) {
+    if (mongoose.connection.readyState === 1 && mongoose.isValidObjectId(id)) {
       const updated = await ProjectRequest.findByIdAndUpdate(
         id,
         { status, ...(adminNotes !== undefined && { adminNotes }) },

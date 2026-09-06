@@ -236,4 +236,60 @@ export const servicesData = [
     highlight: true,
     order: 13,
   },
+  {
+    id: "cybersecurity-pentest",
+    title: "Penetration Testing & Vulnerability Assessment",
+    category: "Cyber Security & Audits",
+    timeline: "3 – 5 Days",
+    icon: "🛡️",
+    tagline: "Identify security loopholes before malicious actors exploit them.",
+    description:
+      "Comprehensive black-box and grey-box security penetration testing for web apps, APIs, and network perimeters. Identifies OWASP Top 10 vulnerabilities, authentication bypasses, and data leakage risks.",
+    deliverables: [
+      "OWASP Top 10 web app & REST API penetration test",
+      "Detailed remediation report with CVSS severity scores",
+      "Verification re-test after patches are applied",
+      "Executive cryptographic security compliance badge",
+    ],
+    techStack: ["Burp Suite", "OWASP ZAP", "Nmap", "Wireshark", "Metasploit"],
+    highlight: true,
+    order: 14,
+  },
+  {
+    id: "cloud-api-hardening",
+    title: "Cloud & API Security Hardening",
+    category: "Cyber Security & Audits",
+    timeline: "2 – 4 Days",
+    icon: "🔐",
+    tagline: "Ironclad defense against DDoS, data tampering, and unauthorized access.",
+    description:
+      "Enterprise-grade hardening of server configurations, cloud VPCs, database firewalls, rate limits, and API endpoints. We implement Zero-Trust principles and SSL/TLS Grade A+ standards.",
+    deliverables: [
+      "Cloudflare WAF rules & DDoS rate limiting setup",
+      "Zero-Trust IAM role and secret encryption review",
+      "Strict TLS 1.3, CSP & HSTS header configuration",
+      "Automated security log alerting & intrusion alerts",
+    ],
+    techStack: ["Cloudflare WAF", "AWS IAM", "HSTS / CSP", "Docker Security"],
+    order: 15,
+  },
+  {
+    id: "smart-audit-compliance",
+    title: "Code Security & Compliance Audit",
+    category: "Cyber Security & Audits",
+    timeline: "3 – 6 Days",
+    icon: "📜",
+    tagline: "Defensive static code analysis and regulatory privacy certification.",
+    description:
+      "Deep architectural and source code security audits. Uncovers hardcoded secrets, injection vectors, unauthenticated endpoints, and ensures compliance with GDPR and industry standards.",
+    deliverables: [
+      "Automated & manual source code security audit (SAST)",
+      "Dependency supply-chain vulnerability audit (Snyk/Trivy)",
+      "GDPR / privacy policy data lifecycle verification",
+      "Signed developer security readiness certificate",
+    ],
+    techStack: ["SonarQube", "Snyk", "Semgrep", "GitHub Dependabot"],
+    order: 16,
+  },
 ];
+
