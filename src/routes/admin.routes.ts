@@ -14,6 +14,7 @@ import {
   sendSprintUpdateToClient,
   sendProjectCompletionEmails,
 } from "../services/email.service.js";
+import { createNotification } from "../services/notification.service.js";
 
 const router = Router();
 const DB_NAME = process.env.MONGODB_DB_NAME || "agency-platform";
@@ -265,6 +266,15 @@ const handleUpdateRequest = async (req: Request, res: Response): Promise<void> =
             stagingUrl: updated.stagingUrl,
             approved: true,
           }).catch((e) => console.error("❌ Error sending admin completion email:", e));
+
+          createNotification({
+            recipientRole: "client",
+            recipientEmail: updated.clientEmail,
+            type: "sprint_update",
+            title: "Project Deployed Live 🚀",
+            message: `Congratulations! "${updated.projectTitle}" has reached 100% completion.`,
+            link: "/dashboard?tab=projects",
+          });
         } else {
           sendSprintUpdateToClient({
             clientName: updated.clientName,
@@ -277,6 +287,15 @@ const handleUpdateRequest = async (req: Request, res: Response): Promise<void> =
             newUpdateTitle: newUpdate?.title,
             newUpdateNote: newUpdate?.note,
           }).catch((e) => console.error("❌ Error sending sprint update email:", e));
+
+          createNotification({
+            recipientRole: "client",
+            recipientEmail: updated.clientEmail,
+            type: "sprint_update",
+            title: status === "review-ready" ? "Deliverables Ready for Review ⭐" : (newUpdate?.title || `Sprint Progress: ${updated.progress}%`),
+            message: newUpdate?.note || `Project "${updated.projectTitle}" updated to ${updated.status}.`,
+            link: "/dashboard?tab=projects",
+          });
         }
       }
 
@@ -480,6 +499,17 @@ router.post(
           $set: { status: "replied" },
         });
         updated = (await getDb().collection("contacts").findOne(query)) as any;
+      }
+
+      if (updated && (updated as any).email) {
+        createNotification({
+          recipientRole: "client",
+          recipientEmail: (updated as any).email,
+          type: "reply",
+          title: "New Admin Reply",
+          message: `${replyItem.senderName} replied: "${message.trim().slice(0, 70)}"`,
+          link: "/dashboard/messages",
+        });
       }
 
       res.json({

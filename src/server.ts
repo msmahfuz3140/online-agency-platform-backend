@@ -14,6 +14,7 @@ import teamRoutes from "./routes/team.routes.js";
 import blogRoutes from "./routes/blog.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import otpRoutes from "./routes/otp.routes.js";
+import notificationRoutes from "./routes/notification.routes.js";
 import { autoSeedDatabase } from "./config/seeder.js";
 
 dotenv.config();
@@ -98,12 +99,14 @@ async function bootstrap() {
   app.use("/api/team", teamRoutes);
   app.use("/api/blog", blogRoutes);
   app.use("/api/admin", adminRoutes);
+  app.use("/api/notifications", notificationRoutes);
 
   app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
     console.log(`📬 Contact route: POST /api/contact | GET /api/contact`);
     console.log(`👤 User route: GET /api/user/me`);
     console.log(`🗂️  Project Request route: POST /api/project-request | GET /api/project-request`);
+    console.log(`🔔 Notifications route: GET /api/notifications | PATCH /api/notifications/:id/read`);
     console.log(`💼 Services route: GET /api/services`);
     console.log(`🎨 Portfolio route: GET /api/portfolio`);
     console.log(`👥 Team route: GET /api/team`);

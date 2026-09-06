@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import mongoose from "mongoose";
 import Contact from "../models/Contact.js";
 import { sendContactEmails, sendAdminReplyToClient } from "../services/email.service.js";
+import { createNotification } from "../services/notification.service.js";
 
 const router = Router();
 
@@ -92,6 +93,23 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     sendContactEmails(contactData as any).catch((err) =>
       console.error("❌ Error dispatching contact emails:", err)
     );
+
+    createNotification({
+      recipientRole: "admin",
+      type: "message",
+      title: "New Client Inquiry",
+      message: `${contactData.name}: "${(contactData.subject || contactData.message).slice(0, 65)}"`,
+      link: "/admin/messages",
+    });
+
+    createNotification({
+      recipientRole: "client",
+      recipientEmail: contactData.email,
+      type: "message",
+      title: "Inquiry Received",
+      message: `Hello ${contactData.name}, we received your message regarding "${contactData.subject}". Our engineering team will respond shortly.`,
+      link: "/dashboard/messages",
+    });
 
     // If MongoDB is connected, save directly to MongoDB
     if (mongoose.connection.readyState === 1) {

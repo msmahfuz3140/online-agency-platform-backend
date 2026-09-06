@@ -1,4 +1,5 @@
 import { Router, Request, Response } from "express";
+import { createNotification } from "../services/notification.service.js";
 
 const router = Router();
 
@@ -87,6 +88,14 @@ router.post("/sign-up/email", (req: Request, res: Response): void => {
   };
 
   devUsers.push(newUser);
+  createNotification({
+    recipientRole: "admin",
+    type: "user_register",
+    title: "New Member Registered",
+    message: `${newUser.name} (${newUser.email}) registered an account.`,
+    link: "/admin/users",
+  }).catch(() => {});
+
   const token = `tok_${Date.now()}_${Math.random().toString(36).slice(2)}`;
   activeSession = { user: newUser, token };
 

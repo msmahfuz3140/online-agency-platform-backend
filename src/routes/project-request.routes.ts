@@ -6,6 +6,7 @@ import {
   sendProjectCompletionEmails,
   sendSprintUpdateToClient,
 } from "../services/email.service.js";
+import { createNotification } from "../services/notification.service.js";
 
 const router = Router();
 
@@ -133,10 +134,27 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       ipAddress,
     };
 
-    // Asynchronously dispatch transactional emails (non-blocking)
+    // Asynchronously dispatch transactional emails & notifications (non-blocking)
     sendProjectRequestEmails(requestData as any).catch((err) =>
       console.error("❌ Error dispatching project request emails:", err)
     );
+
+    createNotification({
+      recipientRole: "admin",
+      type: "project_request",
+      title: "New Project Brief",
+      message: `${requestData.clientName} submitted brief: "${requestData.projectTitle}" [${requestData.budget}]`,
+      link: "/admin/requests",
+    });
+
+    createNotification({
+      recipientRole: "client",
+      recipientEmail: requestData.clientEmail,
+      type: "project_request",
+      title: "Project Brief Logged",
+      message: `Your specifications for "${requestData.projectTitle}" have been received by engineering.`,
+      link: "/dashboard?tab=projects",
+    });
 
     if (mongoose.connection.readyState === 1) {
       const saved = await ProjectRequest.create(requestData);
@@ -314,6 +332,23 @@ router.post("/:id/review", async (req: Request, res: Response): Promise<void> =>
         approved: Boolean(approved),
       }).catch((e) => console.error("❌ Error sending review completion emails:", e));
 
+      createNotification({
+        recipientRole: "admin",
+        type: "project_review",
+        title: "Client Approved Deliverables",
+        message: `${updated.clientName} approved "${updated.projectTitle}" [${numRating}★ review]`,
+        link: "/admin/requests",
+      });
+
+      createNotification({
+        recipientRole: "client",
+        recipientEmail: updated.clientEmail,
+        type: "project_review",
+        title: "Review & Sign-Off Recorded 🎉",
+        message: `Your ${numRating}★ review for "${updated.projectTitle}" has been recorded. Project is officially complete!`,
+        link: "/dashboard?tab=projects",
+      });
+
       res.json({ success: true, message: "Thank you! Your review has been recorded.", data: updated });
       return;
     }
@@ -335,6 +370,14 @@ router.post("/:id/review", async (req: Request, res: Response): Promise<void> =>
         stagingUrl: memItem.stagingUrl,
         approved: Boolean(approved),
       }).catch((e) => console.error("❌ Error sending review completion emails (mem):", e));
+
+      createNotification({
+        recipientRole: "admin",
+        type: "project_review",
+        title: "Client Approved Deliverables",
+        message: `${memItem.clientName} approved "${memItem.projectTitle}" [${numRating}★ review]`,
+        link: "/admin/requests",
+      });
 
       res.json({ success: true, message: "Review recorded (memory).", data: inMemoryRequests[idx] });
       return;
@@ -412,6 +455,15 @@ router.patch("/:id/status", async (req: Request, res: Response): Promise<void> =
           stagingUrl: updated.stagingUrl,
           approved: true,
         }).catch((e) => console.error("❌ Error sending project completion email:", e));
+
+        createNotification({
+          recipientRole: "client",
+          recipientEmail: updated.clientEmail,
+          type: "sprint_update",
+          title: "Project Deployed Live 🚀",
+          message: `Congratulations! "${updated.projectTitle}" has reached 100% completion & signed off.`,
+          link: "/dashboard?tab=projects",
+        });
       } else {
         sendSprintUpdateToClient({
           clientName: updated.clientName,
@@ -422,6 +474,15 @@ router.patch("/:id/status", async (req: Request, res: Response): Promise<void> =
           sprintPhase: updated.sprintPhase,
           stagingUrl: updated.stagingUrl,
         }).catch((e) => console.error("❌ Error sending sprint update email:", e));
+
+        createNotification({
+          recipientRole: "client",
+          recipientEmail: updated.clientEmail,
+          type: "sprint_update",
+          title: status === "review-ready" ? "Deliverables Ready for Review ⭐" : `Project Status: ${status}`,
+          message: `Project "${updated.projectTitle}" is now ${status} (${updated.progress}% progress).`,
+          link: "/dashboard?tab=projects",
+        });
       }
 
       res.json({ success: true, data: updated });
