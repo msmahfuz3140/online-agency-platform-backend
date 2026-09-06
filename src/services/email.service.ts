@@ -62,13 +62,18 @@ export async function sendMail(options: SendMailOptions): Promise<{ success: boo
 
   const tx = getTransporter();
   const pass = process.env.SMTP_PASS ? process.env.SMTP_PASS.trim() : "";
-  const emailFrom = process.env.EMAIL_FROM || `Nexora Agency <${process.env.SMTP_USER || "nexora.agency.3140@gmail.com"}>`;
+  const senderAddress = (process.env.SMTP_USER || "nexora.agency.3140@gmail.com").trim();
+  const senderName = "Nexora Agency";
 
   // If real transporter is available, dispatch via SMTP
   if (tx && pass) {
     try {
       const info = await tx.sendMail({
-        from: emailFrom,
+        from: {
+          name: senderName,
+          address: senderAddress,
+        },
+        replyTo: senderAddress,
         to,
         subject,
         html,
@@ -86,7 +91,7 @@ export async function sendMail(options: SendMailOptions): Promise<{ success: boo
   console.log(`\n══════════════════════════════════════════════════════════════════════════════`);
   console.log(`📬 [EMAIL DISPATCHER - DEV SIMULATION]`);
   console.log(`• To:      ${to}`);
-  console.log(`• From:    ${emailFrom}`);
+  console.log(`• From:    "${senderName}" <${senderAddress}>`);
   console.log(`• Subject: ${subject}`);
   console.log(`• Note:    SMTP_PASS is not configured in .env. Email logged successfully.`);
   console.log(`══════════════════════════════════════════════════════════════════════════════\n`);
