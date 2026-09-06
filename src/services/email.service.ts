@@ -1,4 +1,5 @@
 import nodemailer, { type Transporter } from "nodemailer";
+import dotenv from "dotenv";
 import {
   clientProjectRequestConfirmationEmail,
   adminNewProjectRequestAlertEmail,
@@ -6,38 +7,44 @@ import {
   adminNewContactMessageAlertEmail,
   clientMessageReplyEmail,
   clientSprintUpdateEmail,
+  clientOtpVerificationEmail,
 } from "./email-templates.js";
 
-// Load SMTP configurations from environment
-const SMTP_HOST = process.env.SMTP_HOST || "smtp.gmail.com";
-const SMTP_PORT = Number(process.env.SMTP_PORT) || 465;
-const SMTP_SECURE = process.env.SMTP_SECURE === "true" || SMTP_PORT === 465;
-const SMTP_USER = process.env.SMTP_USER || "mdmahfuzulhaque3140@gmail.com";
-const SMTP_PASS = process.env.SMTP_PASS ? process.env.SMTP_PASS.trim() : "";
-const EMAIL_FROM = process.env.EMAIL_FROM || `Nexora Agency <${SMTP_USER}>`;
-const ADMIN_NOTIFICATION_EMAIL = process.env.ADMIN_NOTIFICATION_EMAIL || "mdmahfuzulhaque3140@gmail.com";
+dotenv.config();
+
+const ADMIN_NOTIFICATION_EMAIL = process.env.ADMIN_NOTIFICATION_EMAIL || "nexora.agency.3140@gmail.com";
 
 let transporter: Transporter | null = null;
+let initialized = false;
 
-// Initialize Nodemailer transporter if credentials are provided
-if (SMTP_USER && SMTP_PASS) {
-  try {
-    transporter = nodemailer.createTransport({
-      host: SMTP_HOST,
-      port: SMTP_PORT,
-      secure: SMTP_SECURE,
-      auth: {
-        user: SMTP_USER,
-        pass: SMTP_PASS,
-      },
-    });
-    console.log(`📧 [EMAIL DISPATCHER] Nodemailer initialized with ${SMTP_HOST}:${SMTP_PORT} (${SMTP_USER})`);
-  } catch (err) {
-    console.error("❌ [EMAIL DISPATCHER] Failed to create nodemailer transporter:", err);
-    transporter = null;
+function getTransporter(): Transporter | null {
+  if (initialized) return transporter;
+  initialized = true;
+
+  const host = process.env.SMTP_HOST || "smtp.gmail.com";
+  const port = Number(process.env.SMTP_PORT) || 465;
+  const secure = process.env.SMTP_SECURE === "true" || port === 465;
+  const user = process.env.SMTP_USER || "nexora.agency.3140@gmail.com";
+  const pass = process.env.SMTP_PASS ? process.env.SMTP_PASS.trim() : "";
+
+  if (user && pass) {
+    try {
+      transporter = nodemailer.createTransport({
+        host,
+        port,
+        secure,
+        auth: { user, pass },
+      });
+      console.log(`📧 [EMAIL DISPATCHER] Nodemailer initialized with ${host}:${port} (${user})`);
+    } catch (err) {
+      console.error("❌ [EMAIL DISPATCHER] Failed to create nodemailer transporter:", err);
+      transporter = null;
+    }
+  } else {
+    console.log("ℹ️  [EMAIL DISPATCHER] Running in Dev Mock Mode. Set SMTP_PASS in .env to deliver real emails.");
   }
-} else {
-  console.log("ℹ️  [EMAIL DISPATCHER] Running in Dev Mock Mode. Set SMTP_PASS in .env to deliver real emails.");
+
+  return transporter;
 }
 
 export interface SendMailOptions {
@@ -53,17 +60,21 @@ export interface SendMailOptions {
 export async function sendMail(options: SendMailOptions): Promise<{ success: boolean; messageId?: string; mocked?: boolean }> {
   const { to, subject, html, text } = options;
 
+  const tx = getTransporter();
+  const pass = process.env.SMTP_PASS ? process.env.SMTP_PASS.trim() : "";
+  const emailFrom = process.env.EMAIL_FROM || `Nexora Agency <${process.env.SMTP_USER || "nexora.agency.3140@gmail.com"}>`;
+
   // If real transporter is available, dispatch via SMTP
-  if (transporter && SMTP_PASS) {
+  if (tx && pass) {
     try {
-      const info = await transporter.sendMail({
-        from: EMAIL_FROM,
+      const info = await tx.sendMail({
+        from: emailFrom,
         to,
         subject,
         html,
         text: text || subject,
       });
-      console.log(`✅ [EMAIL DISPATCHED] To: ${to} | Subject: "${subject}" | MessageId: ${info.messageId}`);
+      console.log(`✅ [REAL EMAIL DISPATCHED TO INBOX] To: ${to} | Subject: "${subject}" | MessageId: ${info.messageId}`);
       return { success: true, messageId: info.messageId };
     } catch (error) {
       console.error(`❌ [EMAIL DISPATCH FAILED] To: ${to} | Subject: "${subject}" | Error:`, error);
@@ -75,7 +86,7 @@ export async function sendMail(options: SendMailOptions): Promise<{ success: boo
   console.log(`\n══════════════════════════════════════════════════════════════════════════════`);
   console.log(`📬 [EMAIL DISPATCHER - DEV SIMULATION]`);
   console.log(`• To:      ${to}`);
-  console.log(`• From:    ${EMAIL_FROM}`);
+  console.log(`• From:    ${emailFrom}`);
   console.log(`• Subject: ${subject}`);
   console.log(`• Note:    SMTP_PASS is not configured in .env. Email logged successfully.`);
   console.log(`══════════════════════════════════════════════════════════════════════════════\n`);
@@ -243,3 +254,28 @@ export async function sendSprintUpdateToClient(params: {
     html: data.html,
   }).catch((err) => console.error("Error sending sprint update email:", err));
 }
+
+/**
+ * Triggered when a user requests an OTP code for registration or email verification.
+ */
+export async function sendOtpVerificationEmail(params: {
+  email: string;
+  name?: string;
+  otp: string;
+  expiresInMinutes?: number;
+}): Promise<{ success: boolean; mocked?: boolean }> {
+  if (!params.email) return { success: false };
+
+  const data = clientOtpVerificationEmail({
+    name: params.name,
+    otp: params.otp,
+    expiresInMinutes: params.expiresInMinutes || 10,
+  });
+
+  return sendMail({
+    to: params.email,
+    subject: data.subject,
+    html: data.html,
+  });
+}
+

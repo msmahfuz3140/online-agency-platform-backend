@@ -13,6 +13,7 @@ import projectRoutes from "./routes/project.routes.js";
 import teamRoutes from "./routes/team.routes.js";
 import blogRoutes from "./routes/blog.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
+import otpRoutes from "./routes/otp.routes.js";
 import { autoSeedDatabase } from "./config/seeder.js";
 
 dotenv.config();
@@ -63,6 +64,9 @@ app.get("/api/health", (_req: Request, res: Response) => {
 // Bootstrap: connect DB first, then mount routes and start server
 async function bootstrap() {
   const dbConnected = await connectDB();
+
+  // Custom OTP routes for registration & email verification
+  app.use("/api/auth", otpRoutes);
 
   // Better Auth handles all auth routes if DB is connected, with dev fallback
   if (dbConnected) {

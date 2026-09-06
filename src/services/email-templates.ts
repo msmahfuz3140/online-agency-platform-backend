@@ -514,3 +514,52 @@ export function clientSprintUpdateEmail(data: {
   `;
   return { subject, html: wrapEmail(subject, body) };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 7. CLIENT: Account Registration OTP Verification Email
+// ─────────────────────────────────────────────────────────────────────────────
+export function clientOtpVerificationEmail(data: {
+  name?: string;
+  otp: string;
+  expiresInMinutes?: number;
+}): { subject: string; html: string } {
+  const subject = `🔐 ${data.otp} is your Nexora verification code`;
+  const body = `
+    <div style="margin-bottom: 24px; text-align: center;">
+      <span class="badge" style="background-color: rgba(20,184,166,0.15); color: #2dd4bf; border: 1px solid rgba(20,184,166,0.3);">
+        SECURITY VERIFICATION CODE
+      </span>
+      <h1 style="margin: 14px 0 6px; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.4px;">
+        Verify Your Email Address
+      </h1>
+      <p style="margin: 0; font-size: 14px; color: #94a3b8; line-height: 1.5;">
+        ${data.name ? `Hello <strong style="color: #ffffff;">${data.name}</strong>, ` : ""}Use the one-time code below to complete your Nexora Agency account registration.
+      </p>
+    </div>
+
+    <!-- Glowing OTP Digits Box -->
+    <div style="background: linear-gradient(180deg, #090e18 0%, #030712 100%); border: 2px dashed #14b8a6; border-radius: 20px; padding: 28px 16px; text-align: center; margin: 24px 0; box-shadow: inset 0 0 30px rgba(20,184,166,0.08);">
+      <span style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; display: block; margin-bottom: 10px; font-family: monospace;">
+        ONE-TIME VERIFICATION CODE
+      </span>
+      <div style="font-size: 44px; font-weight: 900; letter-spacing: 10px; color: #2dd4bf; font-family: monospace; text-shadow: 0 0 20px rgba(45,212,191,0.5);">
+        ${data.otp}
+      </div>
+      <div style="margin-top: 12px; display: inline-block; padding: 4px 12px; border-radius: 9999px; background-color: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.25); font-size: 11px; color: #f59e0b; font-family: monospace;">
+        ⏱ Valid for ${data.expiresInMinutes || 10} minutes
+      </div>
+    </div>
+
+    <!-- Security Advisory Box -->
+    <div style="background-color: #0f172a; border-left: 3px solid #f59e0b; border-radius: 0 12px 12px 0; padding: 14px 16px; margin-bottom: 24px;">
+      <h4 style="margin: 0 0 4px; font-size: 12px; color: #ffffff; font-weight: 700;">
+        🛡 Security Notice
+      </h4>
+      <p style="margin: 0; font-size: 11px; color: #94a3b8; line-height: 1.5;">
+        Never share this code with anyone. Nexora Agency staff will never ask for your verification code. If you did not request this registration, you can safely ignore this message.
+      </p>
+    </div>
+  `;
+  return { subject, html: wrapEmail(subject, body) };
+}
+
