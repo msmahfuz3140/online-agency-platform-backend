@@ -8,6 +8,8 @@ import {
   clientMessageReplyEmail,
   clientSprintUpdateEmail,
   clientOtpVerificationEmail,
+  clientProjectCompletionEmail,
+  adminProjectCompletedAlertEmail,
 } from "./email-templates.js";
 
 dotenv.config();
@@ -283,4 +285,50 @@ export async function sendOtpVerificationEmail(params: {
     html: data.html,
   });
 }
+
+/**
+ * Triggered when a project is completed (client signs off / rates or admin marks completed).
+ * Sends celebratory completion summary to client and alert with review rating to admin.
+ */
+export async function sendProjectCompletionEmails(params: {
+  clientName: string;
+  clientEmail: string;
+  projectTitle: string;
+  rating?: number;
+  feedback?: string;
+  stagingUrl?: string;
+  approved?: boolean;
+}): Promise<void> {
+  // 1. Client Completion & Celebration Email
+  if (params.clientEmail) {
+    const clientData = clientProjectCompletionEmail({
+      clientName: params.clientName,
+      projectTitle: params.projectTitle,
+      rating: params.rating,
+      feedback: params.feedback,
+      stagingUrl: params.stagingUrl,
+    });
+    sendMail({
+      to: params.clientEmail,
+      subject: clientData.subject,
+      html: clientData.html,
+    }).catch((err) => console.error("❌ Error sending client project completion email:", err));
+  }
+
+  // 2. Admin Alert Email
+  const adminData = adminProjectCompletedAlertEmail({
+    clientName: params.clientName,
+    clientEmail: params.clientEmail,
+    projectTitle: params.projectTitle,
+    rating: params.rating,
+    feedback: params.feedback,
+    approved: params.approved !== undefined ? params.approved : true,
+  });
+  sendMail({
+    to: ADMIN_NOTIFICATION_EMAIL,
+    subject: adminData.subject,
+    html: adminData.html,
+  }).catch((err) => console.error("❌ Error sending admin project completion alert:", err));
+}
+
 

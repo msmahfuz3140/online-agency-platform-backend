@@ -563,3 +563,135 @@ export function clientOtpVerificationEmail(data: {
   return { subject, html: wrapEmail(subject, body) };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 8. CLIENT: Project Completed & Approved Celebration Email
+// ─────────────────────────────────────────────────────────────────────────────
+export function clientProjectCompletionEmail(data: {
+  clientName: string;
+  projectTitle: string;
+  rating?: number;
+  feedback?: string;
+  stagingUrl?: string;
+}): { subject: string; html: string } {
+  const subject = `🎉 Project Completed & Deployed: ${data.projectTitle} | Nexora Engineering`;
+  const stars = data.rating ? "★".repeat(data.rating) + "☆".repeat(5 - data.rating) : "";
+
+  const body = `
+    <div style="margin-bottom: 24px; text-align: center;">
+      <span class="badge" style="background-color: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.35);">
+        OFFICIALLY COMPLETED &amp; SIGNED OFF
+      </span>
+      <h1 style="margin: 14px 0 6px; font-size: 24px; font-weight: 800; color: #ffffff; letter-spacing: -0.4px;">
+        Congratulations, ${data.clientName}! 🚀
+      </h1>
+      <p style="margin: 0; font-size: 14px; color: #94a3b8; line-height: 1.6;">
+        Your project <strong style="color: #ffffff;">&ldquo;${data.projectTitle}&rdquo;</strong> has reached 100% completion and has been successfully signed off!
+      </p>
+    </div>
+
+    <!-- Success Stats Box -->
+    <table role="presentation" width="100%" style="background-color: #0f172a; border: 1px solid #1e293b; border-radius: 16px; margin-bottom: 24px;" cellpadding="18" cellspacing="0">
+      <tr>
+        <td style="text-align: center; border-right: 1px solid #1e293b; width: 33%;">
+          <div style="font-size: 22px; font-weight: 900; color: #34d399; font-family: monospace;">100%</div>
+          <div style="font-size: 10px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-top: 4px;">Milestones</div>
+        </td>
+        <td style="text-align: center; border-right: 1px solid #1e293b; width: 33%;">
+          <div style="font-size: 22px; font-weight: 900; color: #2dd4bf; font-family: monospace;">VERIFIED</div>
+          <div style="font-size: 10px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-top: 4px;">QA Audit</div>
+        </td>
+        <td style="text-align: center; width: 33%;">
+          <div style="font-size: 22px; font-weight: 900; color: #f59e0b; font-family: monospace;">${data.rating ? `${data.rating}.0★` : 'READY'}</div>
+          <div style="font-size: 10px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-top: 4px;">Client Sign-Off</div>
+        </td>
+      </tr>
+    </table>
+
+    ${data.rating ? `
+      <!-- Client Review Summary -->
+      <div style="background-color: #030712; border-left: 3px solid #f59e0b; border-radius: 0 12px 12px 0; padding: 16px; margin-bottom: 24px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+          <span style="font-size: 10px; color: #f59e0b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Your Review &amp; Rating</span>
+          <span style="font-size: 14px; color: #f59e0b; letter-spacing: 2px;">${stars}</span>
+        </div>
+        ${data.feedback ? `<p style="margin: 0; font-size: 12px; color: #e2e8f0; font-style: italic; line-height: 1.6;">&ldquo;${data.feedback}&rdquo;</p>` : ""}
+      </div>
+    ` : ""}
+
+    ${data.stagingUrl ? `
+      <div style="background: rgba(45,212,191,0.06); border: 1px dashed rgba(45,212,191,0.3); border-radius: 14px; padding: 16px; text-align: center; margin-bottom: 24px;">
+        <span style="font-size: 10px; color: #2dd4bf; font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 4px;">Live Production URL</span>
+        <a href="${data.stagingUrl.startsWith('http') ? data.stagingUrl : `https://${data.stagingUrl}`}" style="color: #ffffff; font-weight: 700; font-size: 13px; font-family: monospace; text-decoration: underline;">
+          ${data.stagingUrl} ↗
+        </a>
+      </div>
+    ` : ""}
+
+    <div style="text-align: center; margin-bottom: 12px;">
+      <a href="${CLIENT_URL}/dashboard?tab=projects" class="btn">
+        Access Project Workspace &amp; Assets →
+      </a>
+    </div>
+  `;
+  return { subject, html: wrapEmail(subject, body) };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 9. ADMIN: Project Completed & Signed Off Alert Email
+// ─────────────────────────────────────────────────────────────────────────────
+export function adminProjectCompletedAlertEmail(data: {
+  clientName: string;
+  clientEmail: string;
+  projectTitle: string;
+  rating?: number;
+  feedback?: string;
+  approved?: boolean;
+}): { subject: string; html: string } {
+  const stars = data.rating ? "★".repeat(data.rating) + "☆".repeat(5 - data.rating) : "";
+  const subject = `🏆 Project Completed & Signed Off: ${data.projectTitle} [${data.rating ? data.rating + '★' : 'Approved'}] - ${data.clientName}`;
+
+  const body = `
+    <div style="margin-bottom: 20px;">
+      <span class="badge" style="background-color: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.35);">
+        EXECUTIVE ALERT: PROJECT COMPLETED
+      </span>
+      <h1 style="margin: 12px 0 6px; font-size: 20px; font-weight: 800; color: #ffffff;">
+        Client Signed Off &amp; Completed: ${data.projectTitle}
+      </h1>
+      <p style="margin: 0; font-size: 13px; color: #94a3b8;">
+        Client <strong style="color: #ffffff;">${data.clientName}</strong> (${data.clientEmail}) has officially approved deliverables and recorded a project review.
+      </p>
+    </div>
+
+    <!-- Review Details Card -->
+    <table role="presentation" width="100%" style="background-color: #0f172a; border: 1px solid #1e293b; border-radius: 14px; margin-bottom: 20px;" cellpadding="14" cellspacing="0">
+      <tr>
+        <td style="color: #94a3b8; font-size: 12px; font-weight: 600; width: 35%;">Client Rating:</td>
+        <td style="color: #f59e0b; font-size: 14px; font-weight: 700; font-family: monospace;">
+          ${data.rating ? `${data.rating}/5 ${stars}` : "Approved"}
+        </td>
+      </tr>
+      <tr>
+        <td style="color: #94a3b8; font-size: 12px; font-weight: 600; border-top: 1px solid #1e293b;">Client Feedback:</td>
+        <td style="color: #ffffff; font-size: 12px; border-top: 1px solid #1e293b;">
+          ${data.feedback ? `&ldquo;${data.feedback}&rdquo;` : "No written feedback provided."}
+        </td>
+      </tr>
+      <tr>
+        <td style="color: #94a3b8; font-size: 12px; font-weight: 600; border-top: 1px solid #1e293b;">Final Status:</td>
+        <td style="color: #34d399; font-size: 12px; font-weight: 700; border-top: 1px solid #1e293b; font-family: monospace;">
+          COMPLETED (100% Progress)
+        </td>
+      </tr>
+    </table>
+
+    <div style="text-align: center;">
+      <a href="${CLIENT_URL}/admin/requests" class="btn">
+        Open Admin Executive Hub →
+      </a>
+    </div>
+  `;
+  return { subject, html: wrapEmail(subject, body) };
+}
+
+

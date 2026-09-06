@@ -1,7 +1,11 @@
 import { Router, Request, Response } from "express";
 import mongoose from "mongoose";
 import ProjectRequest from "../models/ProjectRequest.js";
-import { sendProjectRequestEmails } from "../services/email.service.js";
+import {
+  sendProjectRequestEmails,
+  sendProjectCompletionEmails,
+  sendSprintUpdateToClient,
+} from "../services/email.service.js";
 
 const router = Router();
 
@@ -299,6 +303,17 @@ router.post("/:id/review", async (req: Request, res: Response): Promise<void> =>
         return;
       }
 
+      // Asynchronously dispatch project review and completion emails to client and admin
+      sendProjectCompletionEmails({
+        clientName: updated.clientName,
+        clientEmail: updated.clientEmail,
+        projectTitle: updated.projectTitle,
+        rating: numRating,
+        feedback: typeof feedback === "string" ? feedback.trim() : "",
+        stagingUrl: updated.stagingUrl,
+        approved: Boolean(approved),
+      }).catch((e) => console.error("❌ Error sending review completion emails:", e));
+
       res.json({ success: true, message: "Thank you! Your review has been recorded.", data: updated });
       return;
     }
@@ -310,6 +325,17 @@ router.post("/:id/review", async (req: Request, res: Response): Promise<void> =>
         ...inMemoryRequests[idx],
         ...updatePayload,
       };
+      const memItem = inMemoryRequests[idx] as any;
+      sendProjectCompletionEmails({
+        clientName: memItem.clientName,
+        clientEmail: memItem.clientEmail,
+        projectTitle: memItem.projectTitle,
+        rating: numRating,
+        feedback: typeof feedback === "string" ? feedback.trim() : "",
+        stagingUrl: memItem.stagingUrl,
+        approved: Boolean(approved),
+      }).catch((e) => console.error("❌ Error sending review completion emails (mem):", e));
+
       res.json({ success: true, message: "Review recorded (memory).", data: inMemoryRequests[idx] });
       return;
     }
@@ -376,6 +402,28 @@ router.patch("/:id/status", async (req: Request, res: Response): Promise<void> =
         res.status(404).json({ success: false, error: "Project request not found." });
         return;
       }
+
+      // Notify client based on status change
+      if (status === "completed") {
+        sendProjectCompletionEmails({
+          clientName: updated.clientName,
+          clientEmail: updated.clientEmail,
+          projectTitle: updated.projectTitle,
+          stagingUrl: updated.stagingUrl,
+          approved: true,
+        }).catch((e) => console.error("❌ Error sending project completion email:", e));
+      } else {
+        sendSprintUpdateToClient({
+          clientName: updated.clientName,
+          clientEmail: updated.clientEmail,
+          projectTitle: updated.projectTitle,
+          status: updated.status,
+          progress: updated.progress,
+          sprintPhase: updated.sprintPhase,
+          stagingUrl: updated.stagingUrl,
+        }).catch((e) => console.error("❌ Error sending sprint update email:", e));
+      }
+
       res.json({ success: true, data: updated });
       return;
     }

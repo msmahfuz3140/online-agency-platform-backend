@@ -10,7 +10,10 @@ import {
 import { getMongoClient } from "../config/db.js";
 import Contact from "../models/Contact.js";
 import ProjectRequest from "../models/ProjectRequest.js";
-import { sendSprintUpdateToClient } from "../services/email.service.js";
+import {
+  sendSprintUpdateToClient,
+  sendProjectCompletionEmails,
+} from "../services/email.service.js";
 
 const router = Router();
 const DB_NAME = process.env.MONGODB_DB_NAME || "agency-platform";
@@ -254,17 +257,27 @@ const handleUpdateRequest = async (req: Request, res: Response): Promise<void> =
 
       // Notify client via email if milestone was published or progress/status updated
       if (newUpdate || status === "review-ready" || status === "completed" || progress !== undefined) {
-        sendSprintUpdateToClient({
-          clientName: updated.clientName,
-          clientEmail: updated.clientEmail,
-          projectTitle: updated.projectTitle,
-          status: updated.status,
-          progress: updated.progress,
-          sprintPhase: updated.sprintPhase,
-          stagingUrl: updated.stagingUrl,
-          newUpdateTitle: newUpdate?.title,
-          newUpdateNote: newUpdate?.note,
-        }).catch((e) => console.error("❌ Error sending sprint update email:", e));
+        if (status === "completed") {
+          sendProjectCompletionEmails({
+            clientName: updated.clientName,
+            clientEmail: updated.clientEmail,
+            projectTitle: updated.projectTitle,
+            stagingUrl: updated.stagingUrl,
+            approved: true,
+          }).catch((e) => console.error("❌ Error sending admin completion email:", e));
+        } else {
+          sendSprintUpdateToClient({
+            clientName: updated.clientName,
+            clientEmail: updated.clientEmail,
+            projectTitle: updated.projectTitle,
+            status: updated.status,
+            progress: updated.progress,
+            sprintPhase: updated.sprintPhase,
+            stagingUrl: updated.stagingUrl,
+            newUpdateTitle: newUpdate?.title,
+            newUpdateNote: newUpdate?.note,
+          }).catch((e) => console.error("❌ Error sending sprint update email:", e));
+        }
       }
 
       res.json({ success: true, message: "Project sprint updated successfully", data: updated });
@@ -285,17 +298,27 @@ const handleUpdateRequest = async (req: Request, res: Response): Promise<void> =
 
     const updatedDoc = (await db.collection("projectrequests").findOne(queryObj)) as any;
     if (updatedDoc && (newUpdate || status === "review-ready" || status === "completed" || progress !== undefined)) {
-      sendSprintUpdateToClient({
-        clientName: updatedDoc.clientName,
-        clientEmail: updatedDoc.clientEmail,
-        projectTitle: updatedDoc.projectTitle,
-        status: updatedDoc.status,
-        progress: updatedDoc.progress,
-        sprintPhase: updatedDoc.sprintPhase,
-        stagingUrl: updatedDoc.stagingUrl,
-        newUpdateTitle: newUpdate?.title,
-        newUpdateNote: newUpdate?.note,
-      }).catch((e) => console.error("❌ Error sending sprint update email:", e));
+      if (status === "completed") {
+        sendProjectCompletionEmails({
+          clientName: updatedDoc.clientName,
+          clientEmail: updatedDoc.clientEmail,
+          projectTitle: updatedDoc.projectTitle,
+          stagingUrl: updatedDoc.stagingUrl,
+          approved: true,
+        }).catch((e) => console.error("❌ Error sending admin completion email (direct):", e));
+      } else {
+        sendSprintUpdateToClient({
+          clientName: updatedDoc.clientName,
+          clientEmail: updatedDoc.clientEmail,
+          projectTitle: updatedDoc.projectTitle,
+          status: updatedDoc.status,
+          progress: updatedDoc.progress,
+          sprintPhase: updatedDoc.sprintPhase,
+          stagingUrl: updatedDoc.stagingUrl,
+          newUpdateTitle: newUpdate?.title,
+          newUpdateNote: newUpdate?.note,
+        }).catch((e) => console.error("❌ Error sending sprint update email (direct):", e));
+      }
     }
 
     res.json({ success: true, message: "Project sprint updated", data: updatedDoc });
