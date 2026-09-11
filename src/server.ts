@@ -40,38 +40,72 @@ const allowedOrigins = Array.from(
   ])
 );
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, curl, server-side fetch)
-      if (!origin) return callback(null, true);
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps, curl, server-side fetch)
+    if (!origin) return callback(null, true);
 
-      if (
-        allowedOrigins.includes(origin) ||
-        origin.startsWith("http://localhost:") ||
-        origin.endsWith(".vercel.app") ||
-        process.env.NODE_ENV !== "production"
-      ) {
-        return callback(null, true);
-      }
-
-      // Permissive fallback so CORS never blocks frontend
+    if (
+      allowedOrigins.includes(origin) ||
+      origin.startsWith("http://localhost:") ||
+      origin.endsWith(".vercel.app") ||
+      origin.includes("vercel.app") ||
+      process.env.NODE_ENV !== "production"
+    ) {
       return callback(null, true);
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "Cookie",
-      "Accept",
-      "X-Requested-With",
-    ],
-  })
-);
+    }
 
-// Pre-flight handling
-app.options("*", cors());
+    // Permissive fallback so CORS never blocks frontend
+    return callback(null, true);
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "Cookie",
+    "Accept",
+    "X-Requested-With",
+    "x-user-email",
+    "x-user-id",
+    "x-user-role",
+    "X-User-Email",
+    "X-User-Id",
+    "X-User-Role",
+    "x-csrf-token",
+    "X-CSRF-Token",
+  ],
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
+
+// Explicit preflight middleware to guarantee preflight responses always return 204 with correct CORS headers
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+  } else {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+  }
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS"
+  );
+  const reqHeaders = req.headers["access-control-request-headers"];
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    reqHeaders ||
+      "Content-Type, Authorization, Cookie, Accept, X-Requested-With, x-user-email, x-user-id, x-user-role, X-User-Email, X-User-Id, X-User-Role"
+  );
+
+  if (req.method === "OPTIONS") {
+    res.status(204).end();
+    return;
+  }
+  next();
+});
 
 // Raw body for Stripe webhook (must be before express.json())
 app.use("/api/payment/stripe-webhook", express.raw({ type: "application/json" }));
