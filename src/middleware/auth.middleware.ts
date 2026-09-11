@@ -94,7 +94,18 @@ export async function requireAuth(
   }
 }
 
-export const STAFF_ROLES = ["superadmin", "admin", "manager", "support", "developer", "editor"];
+export const STAFF_ROLES = [
+  "superadmin",
+  "admin",
+  "manager",
+  "support",
+  "developer",
+  "editor",
+  "cyber_security",
+  "ethical_hacker",
+  "digital_marketer",
+  "graphics_designer",
+];
 export const ADMIN_ROLES = ["superadmin", "admin"];
 
 /**

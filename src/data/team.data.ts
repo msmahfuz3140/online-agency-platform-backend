@@ -531,6 +531,357 @@ export const teamMembersData: TeamMemberDetails[] = [
       portfolio: "https://koushikpaul.tech",
     },
   },
+  {
+    slug: "sakib-al-hasan",
+    name: "Sakib Al Hasan",
+    role: "Head of Digital Marketing & Paid Ads Strategist",
+    shortRole: "Digital Marketer & Ads Specialist",
+    department: "Computer Science & Technology (CST)",
+    institute: "Mymensingh Polytechnic Institute",
+    location: "Mymensingh, Bangladesh",
+    tagline: "Engineering high-ROI paid ad campaigns, algorithmic audience targeting, multi-platform ad funnels, and data-backed performance marketing.",
+    bio: "Professional digital marketer running high-converting Meta, Google, and multi-channel paid ad campaigns with data-driven ROAS optimization.",
+    fullBio: [
+      "Sakib leads Nexora's performance marketing, paid acquisition, and growth engineering division. Studying Computer Science & Technology (CST) at Mymensingh Polytechnic Institute alongside the engineering core, he combines algorithmic data analysis with consumer psychology to scale businesses predictably.",
+      "His methodology treats marketing as an exact science: structured A/B creative testing, server-side Conversion API (CAPI) tracking, dynamic retargeting matrices, and relentless return on ad spend (ROAS) optimization across Meta Ads Manager, Google Ads, and TikTok.",
+      "At Nexora, Sakib works synergistically with UI/UX designers and full-stack engineers to ensure that marketing funnels, landing pages, and lead capture systems convert incoming traffic at industry-leading benchmarks."
+    ],
+    philosophy: "Traffic without conversion is vanity; ads without measurable ROAS are just an expense. We architect high-intent paid campaigns where every single taka or dollar invested yields compound revenue growth.",
+    initials: "SH",
+    gradient: "from-sky-500/25 via-blue-500/10 to-transparent",
+    roleBadgeVariant: "primary",
+    stats: [
+      { label: "Average Campaign ROAS", value: "4.8x" },
+      { label: "Ad Spend Managed", value: "$45K+" },
+      { label: "Conversion Lift", value: "+52%" },
+      { label: "A/B Creatives Tested", value: "350+" },
+    ],
+    coreExpertise: [
+      {
+        title: "Meta Ads & Algorithmic Campaign Architecture",
+        badge: "Performance Marketing",
+        description: "Executing Advantage+ campaigns, lookalike audience segmentation, dynamic creative optimization (DCO), and server-side Conversions API (CAPI) setup.",
+        highlightSkills: ["Meta Ads Manager", "Audience Segmentation", "Conversions API (CAPI)", "Pixel Tracking", "Retargeting"],
+      },
+      {
+        title: "Google Search & High-Intent PPC Campaigns",
+        badge: "Search Marketing",
+        description: "Deploying high-intent keyword architectures, negative keyword pruning, responsive search ads, Quality Score optimization, and Google Performance Max.",
+        highlightSkills: ["Google Ads", "PPC Strategy", "Quality Score Optimization", "Performance Max", "Keyword Research"],
+      },
+      {
+        title: "Conversion Rate Optimization & Funnel Engineering",
+        badge: "Growth Engineering",
+        description: "Collaborating directly with design and development teams to craft frictionless landing page offer flows, heat-map audits, and high-conversion hooks.",
+        highlightSkills: ["Funnel Architecture", "CRO Audits", "A/B Testing", "Copywriting", "Offer Structuring"],
+      },
+      {
+        title: "Data Analytics & Full-Funnel Attribution",
+        badge: "Marketing Analytics",
+        description: "Configuring Google Analytics 4 (GA4), UTM parameter tracking frameworks, customer acquisition cost (CAC) modeling, and customer lifetime value (LTV) projections.",
+        highlightSkills: ["Google Analytics 4", "Attribution Modeling", "CAC & LTV Analysis", "Looker Studio", "Event Tracking"],
+      },
+    ],
+    featuredProjects: [
+      {
+        title: "E-Commerce High-ROAS Scaling Campaign",
+        role: "Lead Paid Ads Strategist",
+        description: "Restructured ad account hierarchy, implemented full-funnel dynamic retargeting, and optimized CAPI server tracking for a direct-to-consumer brand.",
+        metrics: "Delivered 5.2x sustained ROAS over 90 days and scaled monthly revenue by 210%.",
+        tech: ["Meta Ads Manager", "Conversions API", "Google Tag Manager", "Shopify Analytics"],
+      },
+      {
+        title: "B2B SaaS Enterprise Lead Generation Pipeline",
+        role: "Growth Marketer & Media Buyer",
+        description: "Built multi-stage search and retargeting ads capturing qualified tech decision makers with high-intent demo booking offers.",
+        metrics: "Lowered Cost Per Lead (CPL) by 43% while increasing consultation show-up rates to 88%.",
+        tech: ["Google Ads", "LinkedIn Ads", "GA4", "Custom Funnel Optimization"],
+      },
+      {
+        title: "Omni-Channel Brand Launch Blitz",
+        role: "Campaign Architect",
+        description: "Orchestrated coordinated multi-platform launch combining Google Search capture with Meta storytelling ads for a regional tech startup.",
+        metrics: "Generated 1,200+ qualified signups within the first 14 days of campaign launch.",
+        tech: ["Multi-Channel Ads", "Meta Ads", "Google Ads", "Creative Testing"],
+      },
+    ],
+    skills: ["Meta Ads", "Google Ads", "Performance Marketing", "Conversion Funnels", "Data Analytics"],
+    categorizedSkills: [
+      {
+        category: "Paid Advertising Channels",
+        items: ["Meta Ads Manager (FB/IG)", "Google Ads (Search & PMax)", "TikTok Ads Manager", "YouTube Video Ads"],
+      },
+      {
+        category: "Tracking & Marketing Tech",
+        items: ["Conversions API (CAPI)", "Google Tag Manager", "Google Analytics 4", "Pixel Configuration", "Event Tracking"],
+      },
+      {
+        category: "Strategy & Optimization",
+        items: ["ROAS Optimization", "Audience Segmentation", "Lookalike Modeling", "A/B Creative Testing", "Budget Pacing"],
+      },
+      {
+        category: "Conversion & Growth",
+        items: ["Funnel Architecture", "Landing Page CRO", "Ad Copywriting", "Hook Formulation", "Offer Strategy"],
+      },
+    ],
+    credentials: [
+      {
+        degree: "Diploma in Engineering (Computer Science & Technology)",
+        institution: "Mymensingh Polytechnic Institute",
+        period: "Ongoing / CST Division",
+        description: "Combining computer systems, algorithms, and data logic with advanced digital marketing and audience targeting systems.",
+        type: "degree",
+      },
+      {
+        degree: "Professional Paid Media & Performance Marketing Specialization",
+        institution: "Digital Advertising Industry Certification",
+        period: "2024 - Present",
+        description: "Hands-on mastery in high-budget campaign management, conversion tracking APIs, and scalable media buying frameworks.",
+        type: "certification",
+      },
+    ],
+    socialLinks: {
+      github: "https://github.com",
+      linkedin: "https://linkedin.com",
+      twitter: "https://twitter.com",
+      email: "sakib@nexora.agency",
+      portfolio: "https://sakibalhasan.marketing",
+    },
+  },
+  {
+    slug: "mehedi-hasan-saim",
+    name: "Mehedi Hasan Saim",
+    role: "Python Engineer & Cyber Security Specialist",
+    shortRole: "Python Developer & Cyber Security",
+    department: "Computer Science & Technology (CST)",
+    institute: "Mymensingh Polytechnic Institute",
+    location: "Mymensingh, Bangladesh",
+    tagline: "Engineering high-efficiency Python backends, automated vulnerability scanners, threat detection scripts, and secure asynchronous microservices.",
+    bio: "Specializing in Python automation, secure backend architecture, offensive vulnerability tools, and custom security scripts.",
+    fullBio: [
+      "Mehedi Hasan Saim bridges software engineering and information security through Python. As a CST student at Mymensingh Polytechnic Institute studying alongside the Nexora engineering collective, he focuses on turning security audits into automated, repeatable code.",
+      "His technical repertoire covers building custom asynchronous Python scripts, multi-threaded vulnerability scanners, secure FastAPI backend services, and automated log analysis daemons. He analyzes raw network packets and application responses using Python to detect anomalies that traditional commercial scanners miss.",
+      "At Nexora, Saim develops internal automated security testing tools and maintains backend microservices, ensuring client codebases are hardened against automated exploitation before public deployment."
+    ],
+    philosophy: "Manual security testing finds today's bugs; Python automation ensures tomorrow's builds never introduce them again. Code with precision, automate your defenses, and treat every input as hostile.",
+    initials: "MS",
+    gradient: "from-teal-500/25 via-emerald-500/10 to-transparent",
+    roleBadgeVariant: "success",
+    stats: [
+      { label: "Automated Scripts Written", value: "120+" },
+      { label: "Security Tools Built", value: "15+" },
+      { label: "Threat Response Rate", value: "< 5 Min" },
+      { label: "Code Integrity Score", value: "99.5%" },
+    ],
+    coreExpertise: [
+      {
+        title: "Python Security Scripting & Exploit Analysis",
+        badge: "SecOps Engineering",
+        description: "Developing custom multi-threaded Python tooling for automated endpoint fuzzing, port verification, header inspection, and payload verification.",
+        highlightSkills: ["Python 3", "Asyncio / Multi-threading", "Scapy / Socket Programming", "Custom Fuzzing", "Requests"],
+      },
+      {
+        title: "Secure Python Backend Architecture (FastAPI)",
+        badge: "Backend Engineering",
+        description: "Building production-grade microservices with FastAPI and Pydantic: enforcing strict schema typing, rate-limiting, JWT validation, and SQL/NoSQL injection immunity.",
+        highlightSkills: ["FastAPI", "Pydantic", "SQLAlchemy", "Async APIs", "Input Sanitization"],
+      },
+      {
+        title: "Automated Threat Detection & Log Analysis",
+        badge: "Threat Intelligence",
+        description: "Parsing high-volume server logs with Python regular expressions and anomaly detection algorithms to identify credential stuffing, brute force, and probe patterns.",
+        highlightSkills: ["Log Parsing", "Regex Optimization", "Pattern Matching", "Automated Alerts", "Syslog Integration"],
+      },
+      {
+        title: "Linux Environment Automation & Bot Defense",
+        badge: "Infrastructure Defense",
+        description: "Writing automated maintenance, integrity verification, and firewall rule-updating scripts to shield Linux instances from automated malicious bots.",
+        highlightSkills: ["Bash & Python Automation", "Cron Jobs", "Botnet Mitigation", "Linux Daemons"],
+      },
+    ],
+    featuredProjects: [
+      {
+        title: "Automated Vulnerability Scanner & Recon Daemon",
+        role: "Lead Python Developer & Security Engineer",
+        description: "Engineered an asynchronous Python utility that crawls web applications, tests SSL configurations, inspects HTTP security headers, and generates remediation logs.",
+        metrics: "Scanned 50+ enterprise web endpoints in sub-60 seconds with zero false positives.",
+        tech: ["Python 3", "Asyncio", "Aiohttp", "Colorama", "JSON Reporting Engine"],
+      },
+      {
+        title: "High-Throughput Threat Intel Log Analyzer",
+        role: "Systems & Security Developer",
+        description: "Built a continuous background Python daemon analyzing Nginx access logs to automatically flag and block malicious IP subnets in real time.",
+        metrics: "Blocked 8,000+ malicious scraping and vulnerability probing attempts automatically.",
+        tech: ["Python", "Iptables Integration", "Nginx Logs", "Multi-processing"],
+      },
+      {
+        title: "Secure Microservice API Gateway",
+        role: "Backend Engineer",
+        description: "Constructed an authenticated data bridge using FastAPI with strict request sanitization, token hashing, and encrypted payload transit.",
+        metrics: "Achieved sub-15ms response latency under continuous high-concurrency load testing.",
+        tech: ["FastAPI", "Pydantic", "Uvicorn", "JWT Auth", "Docker"],
+      },
+    ],
+    skills: ["Python", "FastAPI", "Cyber Security", "Security Scripting", "Automation"],
+    categorizedSkills: [
+      {
+        category: "Programming & Frameworks",
+        items: ["Python 3 (Asyncio)", "FastAPI", "Pydantic", "Flask", "Shell Scripting"],
+      },
+      {
+        category: "Security & Penetration Tools",
+        items: ["Custom Scanners", "Scapy", "Wireshark", "Burp Suite", "Socket Programming"],
+      },
+      {
+        category: "Data & Automation",
+        items: ["Log Parsing & Analysis", "Automated Fuzzing", "Regex Engineering", "REST API Hardening"],
+      },
+      {
+        category: "Systems & DevOps",
+        items: ["Linux (Ubuntu/Debian)", "Docker Containers", "Git Version Control", "CI/CD Testing"],
+      },
+    ],
+    credentials: [
+      {
+        degree: "Diploma in Engineering (Computer Science & Technology)",
+        institution: "Mymensingh Polytechnic Institute",
+        period: "Ongoing / CST Division",
+        description: "Studying software engineering, algorithmic logic, computer network architecture, and applied cryptography.",
+        type: "degree",
+      },
+      {
+        degree: "Python for Cyber Security & Network Defense",
+        institution: "Practical Security Engineering Specialization",
+        period: "2024 - Present",
+        description: "Hands-on specialization in writing offensive security scripts, automated defensive tools, and secure backend microservices.",
+        type: "certification",
+      },
+    ],
+    socialLinks: {
+      github: "https://github.com",
+      linkedin: "https://linkedin.com",
+      twitter: "https://twitter.com",
+      email: "saim@nexora.agency",
+      portfolio: "https://mehedisaim.tech",
+    },
+  },
+  {
+    slug: "mehedi",
+    name: "Mehedi",
+    role: "Cyber Security Analyst & Perimeter Defender",
+    shortRole: "Cyber Security Specialist",
+    department: "Computer Science & Technology (CST)",
+    institute: "Mymensingh Polytechnic Institute",
+    location: "Mymensingh, Bangladesh",
+    tagline: "Proactive network monitoring, firewall architecture, vulnerability assessment, and defending enterprise digital perimeters.",
+    bio: "Specializing in network defense, zero-trust architecture, threat analysis, and continuous infrastructure monitoring.",
+    fullBio: [
+      "Mehedi is an integral member of Nexora's cyber resilience and defensive operations squad. Learning alongside his fellow classmates in the Computer Science & Technology (CST) department at Mymensingh Polytechnic Institute, he is committed to building unbreachable infrastructure.",
+      "His focus centers on blue-team defense: security perimeter configurations, stateful firewall rules, intrusion detection systems (IDS/IPS), network segmentation, and incident response readiness. He monitors web server telemetry to identify emerging attack vectors before they disrupt live systems.",
+      "At Nexora, Mehedi collaborates with the development and deployment teams to enforce zero-trust access controls, verify security posture compliance, and ensure every client web asset is safeguarded against modern cyber threats."
+    ],
+    philosophy: "The best cybersecurity is proactive, not reactive. You don't wait for an alarm to sound; you fortify the perimeter, monitor the traffic flows, and eliminate every single vulnerability before it can be leveraged.",
+    initials: "ME",
+    gradient: "from-blue-500/25 via-indigo-500/10 to-transparent",
+    roleBadgeVariant: "default",
+    stats: [
+      { label: "Perimeter Audits", value: "30+" },
+      { label: "Intrusion Defense Rate", value: "100%" },
+      { label: "Incident Resolution", value: "< 15m" },
+      { label: "Security Compliance", value: "Zero-Trust" },
+    ],
+    coreExpertise: [
+      {
+        title: "Network Perimeter Defense & Firewall Configuration",
+        badge: "Perimeter Security",
+        description: "Configuring stateful firewall rules, port isolation, anti-spoofing policies, and access-control lists across production cloud droplets.",
+        highlightSkills: ["UFW & Iptables", "Network Segmentation", "Port Hardening", "Access Control Lists", "Traffic Filtering"],
+      },
+      {
+        title: "Threat Analysis & Vulnerability Assessment",
+        badge: "Threat Assessment",
+        description: "Executing regular system audits, scanning network services for unpatched flaws, checking cipher suites, and validating TLS implementations.",
+        highlightSkills: ["Nmap", "OpenVAS", "Vulnerability Auditing", "TLS 1.3 Ciphers", "Attack Surface Mapping"],
+      },
+      {
+        title: "Intrusion Detection & Traffic Telemetry",
+        badge: "Blue Team Defense",
+        description: "Deploying automated intrusion monitoring (Fail2ban, Snort), analyzing packet anomalies, and establishing incident response playbooks.",
+        highlightSkills: ["Fail2ban", "Packet Inspection", "Traffic Anomaly Detection", "Incident Response", "Security Monitoring"],
+      },
+      {
+        title: "Web Application Armor & Secure Configuration",
+        badge: "Application Defense",
+        description: "Implementing defensive HTTP security headers (CSP, HSTS, X-Frame-Options), cookie flags, and protecting against common client-side threats.",
+        highlightSkills: ["Security Headers", "HSTS / CSP", "Cookie Security", "CORS Hardening", "OWASP Defensive Standards"],
+      },
+    ],
+    featuredProjects: [
+      {
+        title: "Cloud Server Perimeter Lockdown & Defense",
+        role: "Cyber Security Analyst",
+        description: "Implemented comprehensive network segmentation and automated firewall rules for a multi-tenant client production infrastructure.",
+        metrics: "Deflected 20,000+ unauthorized brute-force and port probe attempts with 100% service uptime.",
+        tech: ["Linux", "UFW", "Fail2ban", "Nginx Hardening", "Syslog Analysis"],
+      },
+      {
+        title: "Enterprise Web App Security Posture Audit",
+        role: "Defensive Security Auditor",
+        description: "Conducted exhaustive defense-in-depth reviews, auditing server headers, cipher suites, SSL/TLS handshake latency, and internal access privileges.",
+        metrics: "Attained an A+ rating on SSL Labs and certified zero-trust perimeter verification.",
+        tech: ["SSL Labs Audit", "Nmap", "Wireshark", "HTTP Header Hardening"],
+      },
+      {
+        title: "Zero-Trust Incident Response Playbook",
+        role: "Threat Defender",
+        description: "Architected rapid-containment workflows and automated notifications for detecting abnormal traffic spikes and unauthorized administrative attempts.",
+        metrics: "Reduced average threat containment response time to under 12 minutes.",
+        tech: ["Incident Response", "Bash Scripts", "Monitoring Daemons", "Alert Webhooks"],
+      },
+    ],
+    skills: ["Cyber Security", "Network Defense", "Threat Analysis", "Firewall Configuration", "Vulnerability Auditing"],
+    categorizedSkills: [
+      {
+        category: "Network Defense & Perimeters",
+        items: ["UFW & Iptables", "Network Segmentation", "Port Isolation", "TLS / SSL Standards", "Reverse Proxy Protection"],
+      },
+      {
+        category: "Threat Management & Monitoring",
+        items: ["Threat Analysis", "Fail2ban Defense", "Traffic Telemetry", "Incident Response Playbooks", "Log Auditing"],
+      },
+      {
+        category: "Auditing & Assessment Tools",
+        items: ["Nmap Network Scanning", "Wireshark Packet Analysis", "SSL Labs Auditing", "Vulnerability Mapping"],
+      },
+      {
+        category: "Security Standards",
+        items: ["Zero-Trust Model", "Defense-in-Depth", "Security Headers (CSP/HSTS)", "OWASP Blue Team Standards"],
+      },
+    ],
+    credentials: [
+      {
+        degree: "Diploma in Engineering (Computer Science & Technology)",
+        institution: "Mymensingh Polytechnic Institute",
+        period: "Ongoing / CST Division",
+        description: "Specializing in computer networks, telecommunications, distributed systems security, and hardware architecture.",
+        type: "degree",
+      },
+      {
+        degree: "Certified Network Defense & Cyber Threat Analysis",
+        institution: "Information Security Practical Certification",
+        period: "2024 - Present",
+        description: "Comprehensive training in perimeter hardening, threat monitoring, incident response, and defensive cyber resilience.",
+        type: "certification",
+      },
+    ],
+    socialLinks: {
+      github: "https://github.com",
+      linkedin: "https://linkedin.com",
+      twitter: "https://twitter.com",
+      email: "mehedi@nexora.agency",
+      portfolio: "https://mehedihasan.security",
+    },
+  },
 ];
 
 export function getAllTeamMembers(): TeamMemberDetails[] {
@@ -540,3 +891,4 @@ export function getAllTeamMembers(): TeamMemberDetails[] {
 export function getTeamMemberBySlug(slug: string): TeamMemberDetails | undefined {
   return teamMembersData.find((m) => m.slug === slug);
 }
+

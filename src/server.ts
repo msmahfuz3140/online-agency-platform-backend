@@ -30,27 +30,64 @@ const allowedOrigins = Array.from(
   new Set([
     "http://localhost:3000",
     "http://localhost:3001",
-    process.env.CLIENT_URL || "http://localhost:3000",
+    "https://online-agency-platform.vercel.app",
+    ...(process.env.CLIENT_URL
+      ? [
+          process.env.CLIENT_URL.trim(),
+          process.env.CLIENT_URL.trim().replace(/\/+$/, ""),
+        ]
+      : []),
   ])
 );
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      // Allow requests with no origin (like mobile apps, curl, server-side fetch)
+      if (!origin) return callback(null, true);
+
+      if (
+        allowedOrigins.includes(origin) ||
+        origin.startsWith("http://localhost:") ||
+        origin.endsWith(".vercel.app") ||
+        process.env.NODE_ENV !== "production"
+      ) {
         return callback(null, true);
       }
-      return callback(null, true); // Permissive in dev mode
+
+      // Permissive fallback so CORS never blocks frontend
+      return callback(null, true);
     },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "Cookie",
+      "Accept",
+      "X-Requested-With",
+    ],
   })
 );
+
+// Pre-flight handling
+app.options("*", cors());
 
 // Raw body for Stripe webhook (must be before express.json())
 app.use("/api/payment/stripe-webhook", express.raw({ type: "application/json" }));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Ensure DB connection for every incoming request in serverless environment
+app.use(async (_req: Request, _res: Response, next) => {
+  try {
+    await connectDB();
+  } catch (err) {
+    console.warn("DB connection warning in middleware:", err);
+  }
+  next();
+});
 
 // Root Route
 app.get("/", (_req: Request, res: Response) => {
@@ -69,47 +106,54 @@ app.get("/api/health", (_req: Request, res: Response) => {
   });
 });
 
-// Bootstrap: connect DB first, then mount routes and start server
-async function bootstrap() {
-  const dbConnected = await connectDB();
+// Custom OTP routes for registration & email verification
+app.use("/api/auth", otpRoutes);
 
-  // Custom OTP routes for registration & email verification
-  app.use("/api/auth", otpRoutes);
-
-  // Better Auth handles all auth routes if DB is connected, with dev fallback
-  if (dbConnected) {
-    try {
-      const auth = getAuth();
-      app.all("/api/auth/*", toNodeHandler(auth.handler));
-      app.all("/api/auth", toNodeHandler(auth.handler));
-      console.log(
-        "🔐 Better Auth live: POST /api/auth/sign-up/email | POST /api/auth/sign-in/email | POST /api/auth/sign-out"
-      );
-    } catch (authErr) {
-      console.warn("⚠️ Better Auth initialization deferred, using dev fallback:", authErr);
-      app.use("/api/auth", authFallbackRoutes);
-    }
-
-    // Automatically seed services, portfolio projects, team members, and blog posts
-    await autoSeedDatabase();
-  } else {
-    console.log("ℹ️ Better Auth fallback router mounted (ready for testing without live MongoDB).");
-    app.use("/api/auth", authFallbackRoutes);
+// Better Auth router: check if auth is available or fallback
+app.all("/api/auth/*", (req: Request, res: Response, next) => {
+  try {
+    const auth = getAuth();
+    return toNodeHandler(auth.handler)(req, res);
+  } catch {
+    return authFallbackRoutes(req, res, next);
   }
+});
 
-  // Application routes
-  app.use("/api/user", userRoutes);
-  app.use("/api/contact", contactRoutes);
-  app.use("/api/project-request", projectRequestRoutes);
-  app.use("/api/services", serviceRoutes);
-  app.use("/api/portfolio", projectRoutes);
-  app.use("/api/team", teamRoutes);
-  app.use("/api/blog", blogRoutes);
-  app.use("/api/admin", adminRoutes);
-  app.use("/api/notifications", notificationRoutes);
-  app.use("/api/payment", paymentRoutes);
-  app.use("/api/upload", uploadRoutes);
+app.all("/api/auth", (req: Request, res: Response, next) => {
+  try {
+    const auth = getAuth();
+    return toNodeHandler(auth.handler)(req, res);
+  } catch {
+    return authFallbackRoutes(req, res, next);
+  }
+});
 
+// Application routes (mounted synchronously so serverless functions never 404 on cold start)
+app.use("/api/user", userRoutes);
+app.use("/api/contact", contactRoutes);
+app.use("/api/project-request", projectRequestRoutes);
+app.use("/api/services", serviceRoutes);
+app.use("/api/portfolio", projectRoutes);
+app.use("/api/team", teamRoutes);
+app.use("/api/blog", blogRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/payment", paymentRoutes);
+app.use("/api/upload", uploadRoutes);
+
+// Automatically seed services, portfolio projects, team members, and blog posts in background
+connectDB()
+  .then((connected) => {
+    if (connected) {
+      autoSeedDatabase().catch((err) =>
+        console.warn("Database auto-seed skipped or failed:", err?.message)
+      );
+    }
+  })
+  .catch(() => {});
+
+// Start standalone server only when NOT in Vercel Serverless environment
+if (process.env.NODE_ENV !== "test" && !process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
     console.log(`📬 Contact route: POST /api/contact | GET /api/contact`);
@@ -121,15 +165,16 @@ async function bootstrap() {
     console.log(`👥 Team route: GET /api/team`);
     console.log(`📝 Blog route: GET /api/blog`);
     console.log(`🛡️  Admin route: GET /api/admin/stats | /users | /requests | /messages`);
-    console.log(`💳 Payment route: POST /api/payment/create-stripe-intent | /submit-bkash-confirmation | /submit-nagad-confirmation`);
+    console.log(`💳 Payment route: POST /api/payment/create-stripe-intent`);
     console.log(`☁️  Upload route: POST /api/upload | POST /api/upload/multiple | DELETE /api/upload/:publicId`);
-    console.log(`ℹ️  Cloudinary: ${isCloudinaryConfigured() ? `configured (${process.env.CLOUDINARY_CLOUD_NAME})` : "NOT configured — set CLOUDINARY_* in .env"}`);
+    console.log(
+      `ℹ️  Cloudinary: ${
+        isCloudinaryConfigured()
+          ? `configured (${process.env.CLOUDINARY_CLOUD_NAME})`
+          : "NOT configured — set CLOUDINARY_* in .env"
+      }`
+    );
   });
 }
-
-bootstrap().catch((err) => {
-  console.error("❌ Failed to start server:", err);
-  process.exit(1);
-});
 
 export default app;

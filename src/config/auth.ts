@@ -40,10 +40,19 @@ export function createAuth() {
       expiresIn: 60 * 60 * 24 * 7, // 7 days
       updateAge: 60 * 60 * 24,       // Refresh session if older than 1 day
     },
-    trustedOrigins: [
-      process.env.CLIENT_URL || "http://localhost:3000",
-      "http://localhost:3000",
-    ],
+    trustedOrigins: Array.from(
+      new Set([
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "https://online-agency-platform.vercel.app",
+        ...(process.env.CLIENT_URL
+          ? [
+              process.env.CLIENT_URL.trim(),
+              process.env.CLIENT_URL.trim().replace(/\/+$/, ""),
+            ]
+          : []),
+      ])
+    ),
     // Extend the built-in user table with our custom fields
     user: {
       additionalFields: {

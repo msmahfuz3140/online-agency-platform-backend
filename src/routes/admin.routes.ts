@@ -46,7 +46,7 @@ router.get(
           totalUsers,
           totalRequests,
           totalMessages,
-          totalTeamMembers: Math.max(totalTeamMembers, 4),
+          totalTeamMembers: Math.max(totalTeamMembers, 7),
         },
       });
     } catch (err) {
@@ -529,7 +529,7 @@ const DEFAULT_STAFF = [
   {
     name: "MD Mahfuzul Haque",
     email: "mahfuzul@nexora.agency",
-    role: "superadmin",
+    role: "developer",
     department: "Computer Science & Technology (CST)",
     title: "Founder & Lead Systems Architect",
     permissions: ["manage_team", "manage_requests", "reply_messages", "manage_users", "view_analytics", "system_settings"],
@@ -539,9 +539,9 @@ const DEFAULT_STAFF = [
   {
     name: "Jahidul Islam",
     email: "jahidul@nexora.agency",
-    role: "manager",
-    department: "UI/UX & Design Systems",
-    title: "Co-Founder & Head of UI/UX",
+    role: "graphics_designer",
+    department: "UI/UX & Graphics Design",
+    title: "Co-Founder & Head of UI/UX & Graphics",
     permissions: ["manage_requests", "reply_messages", "view_users", "view_analytics"],
     status: "active",
     avatar: "JI",
@@ -549,7 +549,7 @@ const DEFAULT_STAFF = [
   {
     name: "Saif Khan",
     email: "saif@nexora.agency",
-    role: "developer",
+    role: "cyber_security",
     department: "Cyber Security & Infrastructure",
     title: "Co-Founder & Cyber Security Lead",
     permissions: ["manage_requests", "view_analytics"],
@@ -557,14 +557,44 @@ const DEFAULT_STAFF = [
     avatar: "SK",
   },
   {
-    name: "Koushik Roy",
+    name: "Koushik Komar Paul",
     email: "koushik@nexora.agency",
-    role: "support",
-    department: "Client Support & Security Auditing",
-    title: "Lead Security Auditor & Support",
-    permissions: ["reply_messages", "manage_requests"],
+    role: "ethical_hacker",
+    department: "Offensive Security & Ethical Hacking",
+    title: "Lead Ethical Hacker & Security Auditor",
+    permissions: ["reply_messages", "manage_requests", "view_analytics"],
     status: "active",
-    avatar: "KR",
+    avatar: "KP",
+  },
+  {
+    name: "Sakib Al Hasan",
+    email: "sakib@nexora.agency",
+    role: "digital_marketer",
+    department: "Digital Marketing & Growth Ads",
+    title: "Head of Digital Marketing & Paid Ads",
+    permissions: ["view_analytics", "manage_requests", "reply_messages"],
+    status: "active",
+    avatar: "SH",
+  },
+  {
+    name: "Mehedi Hasan Saim",
+    email: "saim@nexora.agency",
+    role: "developer",
+    department: "Python Engineering & Security",
+    title: "Python Developer & SecOps Specialist",
+    permissions: ["manage_requests", "view_analytics"],
+    status: "active",
+    avatar: "MS",
+  },
+  {
+    name: "Mehedi",
+    email: "mehedi@nexora.agency",
+    role: "cyber_security",
+    department: "Cyber Security & Threat Defense",
+    title: "Cyber Security Analyst",
+    permissions: ["manage_requests", "view_analytics"],
+    status: "active",
+    avatar: "ME",
   },
 ];
 
@@ -583,32 +613,31 @@ router.get(
         .find({ role: { $in: STAFF_ROLES } })
         .toArray();
 
-      // If fewer than default staff members exist, ensure default staff exist
-      if (staffUsers.length < DEFAULT_STAFF.length) {
-        for (const defaultMember of DEFAULT_STAFF) {
-          const exists = staffUsers.some((u) => u.email === defaultMember.email);
-          if (!exists) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            await db.collection("user").updateOne(
-              { email: defaultMember.email } as any,
-              {
-                $setOnInsert: {
-                  _id: "team_" + defaultMember.avatar.toLowerCase(),
-                  name: defaultMember.name,
-                  email: defaultMember.email,
-                  role: defaultMember.role,
-                  department: defaultMember.department,
-                  title: defaultMember.title,
-                  permissions: defaultMember.permissions,
-                  status: defaultMember.status,
-                  isBlocked: false,
-                  createdAt: new Date(),
-                  aiCreditsRemaining: 100,
-                },
+      // Ensure all default staff members exist in database
+      for (const defaultMember of DEFAULT_STAFF) {
+        const exists = staffUsers.some((u) => u.email === defaultMember.email);
+        if (!exists) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await db.collection("user").updateOne(
+            { email: defaultMember.email } as any,
+            {
+              $setOnInsert: {
+                _id: "team_" + defaultMember.avatar.toLowerCase(),
+                name: defaultMember.name,
+                email: defaultMember.email,
+                role: defaultMember.role,
+                department: defaultMember.department,
+                title: defaultMember.title,
+                permissions: defaultMember.permissions,
+                status: defaultMember.status,
+                avatar: defaultMember.avatar,
+                isBlocked: false,
+                createdAt: new Date(),
+                aiCreditsRemaining: 100,
               },
-              { upsert: true }
-            );
-          }
+            },
+            { upsert: true }
+          );
         }
       }
 
@@ -639,7 +668,7 @@ router.get(
           title: u.title || "Team Specialist",
           permissions: u.permissions || ["manage_requests"],
           status: u.isBlocked ? "suspended" : (u.status || "active"),
-          avatar: initials,
+          avatar: u.avatar || initials,
           createdAt: u.createdAt || new Date(),
         };
       });

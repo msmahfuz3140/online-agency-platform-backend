@@ -45,7 +45,7 @@ export async function autoSeedDatabase(): Promise<void> {
 
     // 3. Seed / Upsert Team Members
     const teamCount = await TeamMember.countDocuments();
-    if (teamCount < teamMembersData.length) {
+    if (teamCount !== teamMembersData.length) {
       console.log(`🌱 Seeding Team Members in MongoDB (${teamMembersData.length} records)...`);
       for (let i = 0; i < teamMembersData.length; i++) {
         const member = teamMembersData[i];
