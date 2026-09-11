@@ -4,7 +4,7 @@ export interface INotification extends Document {
   recipientRole: "admin" | "client";
   recipientEmail?: string;
   recipientId?: string;
-  type: "project_request" | "project_review" | "sprint_update" | "message" | "reply" | "user_register" | "payment";
+  type: "project_request" | "project_review" | "sprint_update" | "message" | "reply" | "user_register" | "payment" | "security";
   title: string;
   message: string;
   link?: string;
@@ -35,7 +35,7 @@ const notificationSchema = new Schema<INotification>(
     },
     type: {
       type: String,
-      enum: ["project_request", "project_review", "sprint_update", "message", "reply", "user_register", "payment"],
+      enum: ["project_request", "project_review", "sprint_update", "message", "reply", "user_register", "payment", "security"],
       required: true,
     },
     title: {

@@ -13,7 +13,7 @@ export async function createNotification(data: {
   recipientRole: "admin" | "client";
   recipientEmail?: string;
   recipientId?: string;
-  type: "project_request" | "project_review" | "sprint_update" | "message" | "reply" | "user_register";
+  type: "project_request" | "project_review" | "sprint_update" | "message" | "reply" | "user_register" | "payment" | "security";
   title: string;
   message: string;
   link?: string;
