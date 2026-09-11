@@ -331,4 +331,71 @@ export async function sendProjectCompletionEmails(params: {
   }).catch((err) => console.error("❌ Error sending admin project completion alert:", err));
 }
 
+// ─── Manual Payment Notification (bKash / Nagad) ──────────────────────────────
+export async function sendManualPaymentNotification(params: {
+  clientName: string;
+  clientEmail: string;
+  plan: string;
+  method: string;
+  amount: string;
+  senderNumber: string;
+  transactionId: string;
+  paymentId: string;
+}): Promise<void> {
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0f172a; color: #e2e8f0; padding: 32px; border-radius: 12px;">
+      <h2 style="color: #14b8a6; margin-bottom: 8px;">💳 Manual Payment Confirmation Received</h2>
+      <p style="color: #94a3b8; margin-bottom: 24px;">A client has submitted a ${params.method} payment and is awaiting verification.</p>
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr><td style="padding: 8px 0; color: #94a3b8; width: 40%;">Client Name</td><td style="padding: 8px 0; font-weight: bold;">${params.clientName}</td></tr>
+        <tr><td style="padding: 8px 0; color: #94a3b8;">Client Email</td><td style="padding: 8px 0;">${params.clientEmail}</td></tr>
+        <tr><td style="padding: 8px 0; color: #94a3b8;">Plan</td><td style="padding: 8px 0; color: #14b8a6; font-weight: bold;">${params.plan}</td></tr>
+        <tr><td style="padding: 8px 0; color: #94a3b8;">Payment Method</td><td style="padding: 8px 0;">${params.method}</td></tr>
+        <tr><td style="padding: 8px 0; color: #94a3b8;">Amount</td><td style="padding: 8px 0; font-weight: bold;">${params.amount}</td></tr>
+        <tr><td style="padding: 8px 0; color: #94a3b8;">Sender Number</td><td style="padding: 8px 0;">${params.senderNumber}</td></tr>
+        <tr><td style="padding: 8px 0; color: #94a3b8;">Transaction ID</td><td style="padding: 8px 0; font-family: monospace; color: #f59e0b;">${params.transactionId}</td></tr>
+        <tr><td style="padding: 8px 0; color: #94a3b8;">Payment DB ID</td><td style="padding: 8px 0; font-family: monospace; font-size: 12px;">${params.paymentId}</td></tr>
+      </table>
+      <p style="margin-top: 24px; padding: 16px; background: #1e293b; border-radius: 8px; border-left: 4px solid #f59e0b; color: #fbbf24;">
+        ⚠️ Please verify this transaction in the ${params.method} merchant app and confirm the payment in the admin panel.
+      </p>
+    </div>
+  `;
 
+  sendMail({
+    to: ADMIN_NOTIFICATION_EMAIL,
+    subject: `🔔 [${params.method} Payment] ${params.clientName} — ${params.plan} — Awaiting Verification`,
+    html,
+  }).catch((err) => console.error("❌ Error sending manual payment notification:", err));
+}
+
+// ─── Payment Confirmation Email to Client ─────────────────────────────────────
+export async function sendPaymentConfirmationEmail(params: {
+  clientName: string;
+  clientEmail: string;
+  plan: string;
+  method: string;
+  amount: string;
+  transactionId: string;
+}): Promise<void> {
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0f172a; color: #e2e8f0; padding: 32px; border-radius: 12px;">
+      <h2 style="color: #14b8a6; margin-bottom: 8px;">✅ Payment Confirmed!</h2>
+      <p>Hi ${params.clientName}, your payment for <strong>${params.plan}</strong> has been confirmed.</p>
+      <table style="width: 100%; border-collapse: collapse; margin: 24px 0;">
+        <tr><td style="padding: 8px 0; color: #94a3b8; width: 40%;">Plan</td><td style="color: #14b8a6; font-weight: bold;">${params.plan}</td></tr>
+        <tr><td style="padding: 8px 0; color: #94a3b8;">Amount</td><td style="font-weight: bold;">${params.amount}</td></tr>
+        <tr><td style="padding: 8px 0; color: #94a3b8;">Method</td><td>${params.method}</td></tr>
+        <tr><td style="padding: 8px 0; color: #94a3b8;">Transaction ID</td><td style="font-family: monospace; color: #f59e0b;">${params.transactionId}</td></tr>
+      </table>
+      <p style="color: #94a3b8;">Our team will contact you within 24 hours to kickstart your project. 🚀</p>
+      <p style="margin-top: 24px; color: #64748b; font-size: 13px;">— Nexora Agency Team</p>
+    </div>
+  `;
+
+  sendMail({
+    to: params.clientEmail,
+    subject: `✅ Payment Confirmed — ${params.plan} | Nexora Agency`,
+    html,
+  }).catch((err) => console.error("❌ Error sending payment confirmation email:", err));
+}

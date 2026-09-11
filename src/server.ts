@@ -15,6 +15,9 @@ import blogRoutes from "./routes/blog.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import otpRoutes from "./routes/otp.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
+import paymentRoutes from "./routes/payment.routes.js";
+import uploadRoutes from "./routes/upload.routes.js";
+import { isCloudinaryConfigured } from "./config/cloudinary.js";
 import { autoSeedDatabase } from "./config/seeder.js";
 
 dotenv.config();
@@ -42,6 +45,10 @@ app.use(
     credentials: true,
   })
 );
+
+// Raw body for Stripe webhook (must be before express.json())
+app.use("/api/payment/stripe-webhook", express.raw({ type: "application/json" }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -100,6 +107,8 @@ async function bootstrap() {
   app.use("/api/blog", blogRoutes);
   app.use("/api/admin", adminRoutes);
   app.use("/api/notifications", notificationRoutes);
+  app.use("/api/payment", paymentRoutes);
+  app.use("/api/upload", uploadRoutes);
 
   app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
@@ -112,6 +121,9 @@ async function bootstrap() {
     console.log(`👥 Team route: GET /api/team`);
     console.log(`📝 Blog route: GET /api/blog`);
     console.log(`🛡️  Admin route: GET /api/admin/stats | /users | /requests | /messages`);
+    console.log(`💳 Payment route: POST /api/payment/create-stripe-intent | /submit-bkash-confirmation | /submit-nagad-confirmation`);
+    console.log(`☁️  Upload route: POST /api/upload | POST /api/upload/multiple | DELETE /api/upload/:publicId`);
+    console.log(`ℹ️  Cloudinary: ${isCloudinaryConfigured() ? `configured (${process.env.CLOUDINARY_CLOUD_NAME})` : "NOT configured — set CLOUDINARY_* in .env"}`);
   });
 }
 
