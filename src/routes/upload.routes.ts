@@ -25,7 +25,7 @@ const memoryUpload = multer({
     } else {
       cb(
         new Error(
-          `Unsupported file type: ${file.mimetype}. Allowed: JPEG, PNG, WebP, GIF, SVG, PDF`
+          `Unsupported file type: ${file.mimetype}. Allowed: JPEG, PNG, WebP, GIF, SVG, PDF, DOC, DOCX, TXT`
         )
       );
     }

@@ -34,8 +34,14 @@ export const ALLOWED_IMAGE_TYPES = [
   "image/svg+xml",
 ];
 
-export const ALLOWED_PDF_TYPES = ["application/pdf"];
-export const ALLOWED_ALL_TYPES = [...ALLOWED_IMAGE_TYPES, ...ALLOWED_PDF_TYPES];
+export const ALLOWED_DOC_TYPES = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "text/plain",
+];
+export const ALLOWED_PDF_TYPES = ALLOWED_DOC_TYPES;
+export const ALLOWED_ALL_TYPES = [...ALLOWED_IMAGE_TYPES, ...ALLOWED_DOC_TYPES];
 
 // ─── Upload helper: Buffer → Cloudinary ──────────────────────────────────────
 export async function uploadToCloudinary(
@@ -53,8 +59,8 @@ export async function uploadToCloudinary(
   }
 
   const folderPath = UPLOAD_FOLDERS[options.folder] || UPLOAD_FOLDERS.general;
-  const isPdf = options.mimetype === "application/pdf";
-  const resourceType = options.resourceType || (isPdf ? "raw" : "image");
+  const isImage = ALLOWED_IMAGE_TYPES.includes(options.mimetype || "");
+  const resourceType = options.resourceType || (isImage ? "image" : "raw");
 
   const uploadOptions: UploadApiOptions = {
     folder: folderPath,

@@ -30,6 +30,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       requirements,
       techStack,
       referenceUrls,
+      attachments,
       budget,
       timeline,
     } = req.body;
@@ -88,6 +89,17 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       requirements: requirements.trim(),
       techStack: Array.isArray(techStack) ? techStack.map((t: string) => t.trim()).filter(Boolean) : [],
       referenceUrls: Array.isArray(referenceUrls) ? referenceUrls.map((u: string) => u.trim()).filter(Boolean) : [],
+      attachments: Array.isArray(attachments)
+        ? attachments
+            .filter((a: any) => a && typeof a.url === "string" && a.url.trim().length > 0)
+            .map((a: any) => ({
+              url: a.url.trim(),
+              name: typeof a.name === "string" && a.name.trim() ? a.name.trim() : "Attachment",
+              size: typeof a.size === "number" ? a.size : undefined,
+              format: typeof a.format === "string" ? a.format.trim() : undefined,
+              publicId: typeof a.publicId === "string" ? a.publicId.trim() : undefined,
+            }))
+        : [],
       budget,
       timeline,
       status: "pending" as const,

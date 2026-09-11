@@ -51,6 +51,14 @@ export interface ILeadEngineer {
   avatar: string;
 }
 
+export interface IProjectAttachment {
+  url: string;
+  name: string;
+  size?: number;
+  format?: string;
+  publicId?: string;
+}
+
 export interface IProjectRequest extends Document {
   clientName: string;
   clientEmail: string;
@@ -62,6 +70,7 @@ export interface IProjectRequest extends Document {
   requirements: string;
   techStack?: string[];
   referenceUrls?: string[];
+  attachments?: IProjectAttachment[];
   budget: BudgetRange;
   timeline: TimelineRange;
   status: ProjectStatus;
@@ -132,6 +141,15 @@ const projectRequestSchema = new Schema<IProjectRequest>(
     },
     techStack: { type: [String], default: [] },
     referenceUrls: { type: [String], default: [] },
+    attachments: [
+      {
+        url: { type: String, required: true },
+        name: { type: String, required: true },
+        size: { type: Number },
+        format: { type: String },
+        publicId: { type: String },
+      },
+    ],
     budget: {
       type: String,
       required: [true, "Budget range is required"],

@@ -206,6 +206,7 @@ export function adminNewProjectRequestAlertEmail(data: {
   budget: string;
   timeline: string;
   requirements?: string;
+  attachments?: Array<{ url: string; name: string; size?: number }>;
 }): { subject: string; html: string } {
   const subject = `🚨 New Project Brief: [${data.budget}] ${data.projectTitle} - ${data.clientName}`;
   const body = `
@@ -254,9 +255,24 @@ export function adminNewProjectRequestAlertEmail(data: {
     </table>
 
     ${data.requirements ? `
-      <div style="background-color: #030712; border: 1px solid #1e293b; border-radius: 12px; padding: 14px; margin-bottom: 24px;">
+      <div style="background-color: #030712; border: 1px solid #1e293b; border-radius: 12px; padding: 14px; margin-bottom: 20px;">
         <span style="font-size: 10px; color: #64748b; font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 6px;">Client Requirements Brief</span>
         <p style="margin: 0; font-size: 12px; color: #cbd5e1; line-height: 1.6; white-space: pre-wrap;">${data.requirements}</p>
+      </div>
+    ` : ""}
+
+    ${data.attachments && data.attachments.length > 0 ? `
+      <div style="background-color: #030712; border: 1px solid #1e293b; border-radius: 12px; padding: 14px; margin-bottom: 20px;">
+        <span style="font-size: 10px; color: #2dd4bf; font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 8px;">Attached Documents &amp; Files (${data.attachments.length})</span>
+        <ul style="margin: 0; padding-left: 16px; font-size: 12px; color: #cbd5e1;">
+          ${data.attachments.map(att => `
+            <li style="margin-bottom: 4px;">
+              <a href="${att.url}" target="_blank" style="color: #2dd4bf; text-decoration: underline;">
+                ${att.name}
+              </a>
+            </li>
+          `).join("")}
+        </ul>
       </div>
     ` : ""}
 

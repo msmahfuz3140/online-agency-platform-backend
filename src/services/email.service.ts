@@ -119,6 +119,7 @@ export async function sendProjectRequestEmails(request: {
   budget: string;
   timeline: string;
   requirements?: string;
+  attachments?: Array<{ url: string; name: string; size?: number }>;
 }): Promise<void> {
   // 1. Send confirmation to client
   if (request.clientEmail) {
@@ -147,6 +148,7 @@ export async function sendProjectRequestEmails(request: {
     budget: request.budget,
     timeline: request.timeline,
     requirements: request.requirements,
+    attachments: request.attachments,
   });
   sendMail({
     to: ADMIN_NOTIFICATION_EMAIL,
