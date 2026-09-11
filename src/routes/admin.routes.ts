@@ -15,6 +15,9 @@ import {
   sendProjectCompletionEmails,
 } from "../services/email.service.js";
 import { createNotification } from "../services/notification.service.js";
+import TeamMember from "../models/TeamMember.js";
+import { teamMembersData } from "../data/team.data.js";
+import { devUsers } from "./auth-fallback.routes.js";
 
 const router = Router();
 const DB_NAME = process.env.MONGODB_DB_NAME || "agency-platform";
@@ -78,23 +81,47 @@ router.get(
         ];
       }
 
-      const [users, total] = await Promise.all([
+      let [users, total] = await Promise.all([
         db.collection("user").find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).toArray(),
         db.collection("user").countDocuments(filter),
       ]);
 
+      if (total === 0) {
+        const [pluralUsers, pluralTotal] = await Promise.all([
+          db.collection("users").find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).toArray(),
+          db.collection("users").countDocuments(filter),
+        ]);
+        if (pluralTotal > 0) {
+          users = pluralUsers;
+          total = pluralTotal;
+        }
+      }
+
+      if (total === 0) {
+        users = devUsers.map((u) => ({
+          _id: u.id,
+          name: u.name,
+          email: u.email,
+          role: u.role,
+          isBlocked: false,
+          aiCreditsRemaining: u.aiCreditsRemaining,
+          createdAt: u.createdAt,
+        })) as any;
+        total = users.length;
+      }
+
       res.json({
         success: true,
-        data: users.map((u) => ({
-          id: u._id,
+        data: users.map((u: any) => ({
+          id: u._id ? u._id.toString() : (u.id || `usr_${Date.now()}`),
           name: u.name,
           email: u.email,
           role: u.role || "user",
           isBlocked: u.isBlocked || false,
           aiCreditsRemaining: u.aiCreditsRemaining ?? 5,
-          createdAt: u.createdAt,
+          createdAt: u.createdAt || new Date(),
         })),
-        pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+        pagination: { page, limit, total, pages: Math.ceil(total / limit) || 1 },
       });
     } catch (err) {
       console.error("Admin users list error:", err);
@@ -869,6 +896,226 @@ router.get(
     } catch (err) {
       console.error("Admin workspace error:", err);
       res.status(500).json({ success: false, message: "Failed to fetch workspace data" });
+    }
+  }
+);
+
+// ─── Team Staff Management (Admin) ──────────────────────────────────────────
+function mapRoleToStaffCategory(roleStr: string): string {
+  const r = (roleStr || "").toLowerCase();
+  if (r.includes("founder") || r.includes("cto") || r.includes("superadmin") || r.includes("chief")) {
+    return "superadmin";
+  }
+  if (r.includes("cyber") || r.includes("infrastructure") || r.includes("security")) {
+    return "cyber_security";
+  }
+  if (r.includes("hacker") || r.includes("penetration")) {
+    return "ethical_hacker";
+  }
+  if (r.includes("market") || r.includes("growth") || r.includes("seo")) {
+    return "digital_marketer";
+  }
+  if (r.includes("design") || r.includes("ui") || r.includes("ux") || r.includes("graphics")) {
+    return "graphics_designer";
+  }
+  if (r.includes("developer") || r.includes("engineer") || r.includes("architect") || r.includes("fullstack") || r.includes("backend")) {
+    return "developer";
+  }
+  return "developer";
+}
+
+// GET /api/admin/team — Fetch all team members from MongoDB
+router.get(
+  "/team",
+  requireAuth,
+  requireStaff,
+  async (_req: Request, res: Response): Promise<void> => {
+    try {
+      let members = await TeamMember.find().sort({ order: 1, createdAt: 1 }).lean();
+
+      // If database is empty, seed from teamMembersData
+      if (!members || members.length === 0) {
+        try {
+          for (let i = 0; i < teamMembersData.length; i++) {
+            const member = teamMembersData[i];
+            await TeamMember.findOneAndUpdate(
+              { slug: member.slug },
+              { ...member, order: i + 1 },
+              { upsert: true, new: true }
+            );
+          }
+          members = await TeamMember.find().sort({ order: 1, createdAt: 1 }).lean();
+        } catch (seedErr) {
+          console.warn("Could not auto-seed team in admin route:", seedErr);
+        }
+      }
+
+      const sourceList = members && members.length > 0 ? members : teamMembersData;
+
+      const data = sourceList.map((m: any, idx: number) => ({
+        id: m._id ? m._id.toString() : (m.slug || `staff_${idx + 1}`),
+        name: m.name,
+        email: m.socialLinks?.email || `${m.slug || "staff"}@nexora.agency`,
+        role: mapRoleToStaffCategory(m.role || m.shortRole),
+        department: m.department || "Computer Science & Technology (CST)",
+        title: m.role || m.shortRole || "Staff Specialist",
+        permissions: ["manage_requests", "reply_messages", "view_users", "view_analytics", "manage_team"],
+        status: "active" as const,
+        avatar: m.image || "",
+        createdAt: m.createdAt || new Date().toISOString(),
+      }));
+
+      res.json({ success: true, data });
+    } catch (err) {
+      console.error("Admin team fetch error:", err);
+      const data = teamMembersData.map((m, idx) => ({
+        id: m.slug || `staff_${idx + 1}`,
+        name: m.name,
+        email: m.socialLinks?.email || `${m.slug}@nexora.agency`,
+        role: mapRoleToStaffCategory(m.role),
+        department: m.department,
+        title: m.role,
+        permissions: ["manage_requests", "reply_messages", "view_users", "view_analytics"],
+        status: "active" as const,
+        avatar: m.image || "",
+        createdAt: new Date().toISOString(),
+      }));
+      res.json({ success: true, data });
+    }
+  }
+);
+
+// POST /api/admin/team — Add new team member to MongoDB
+router.post(
+  "/team",
+  requireAuth,
+  requireAdmin,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { name, email, role, department, title, permissions } = req.body;
+      if (!name || !email) {
+        res.status(400).json({ success: false, message: "Name and email are required" });
+        return;
+      }
+
+      const cleanSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+      const initials = name
+        .split(" ")
+        .map((n: string) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
+
+      const created = await TeamMember.create({
+        slug: `${cleanSlug}-${Date.now().toString().slice(-4)}`,
+        name,
+        role: title || role || "Software Engineer",
+        shortRole: role || "Developer",
+        department: department || "Computer Science & Technology (CST)",
+        institute: "Nexora Agency",
+        location: "Dhaka, Bangladesh",
+        tagline: "Specialist delivering next-generation digital platforms at Nexora.",
+        bio: `${name} is an active ${title || role} on the Nexora engineering and operations team.`,
+        fullBio: [`${name} specializes in delivering high-performance, resilient enterprise systems.`],
+        philosophy: "Building resilient and high-velocity digital solutions.",
+        initials: initials || "NX",
+        image: "",
+        gradient: "from-primary-500/20 to-surface-2",
+        roleBadgeVariant: "primary",
+        stats: [{ label: "Projects Completed", value: "5+" }],
+        coreExpertise: [
+          {
+            title: title || role,
+            description: "Core discipline contributor",
+            badge: role,
+            highlightSkills: permissions || [],
+          },
+        ],
+        featuredProjects: [],
+        skills: permissions || [],
+        categorizedSkills: [],
+        credentials: [],
+        socialLinks: { email },
+        order: (await TeamMember.countDocuments()) + 1,
+      });
+
+      res.status(201).json({
+        success: true,
+        message: `${name} added to the team successfully`,
+        data: {
+          id: created._id.toString(),
+          name: created.name,
+          email,
+          role,
+          department: created.department,
+          title: created.role,
+          permissions: permissions || [],
+          status: "active",
+          avatar: "",
+          createdAt: created.createdAt,
+        },
+      });
+    } catch (err: any) {
+      console.error("Add team member error:", err);
+      res.status(500).json({ success: false, message: err?.message || "Failed to add team member" });
+    }
+  }
+);
+
+// PATCH /api/admin/team/:id — Update team member in MongoDB
+router.patch(
+  "/team/:id",
+  requireAuth,
+  requireAdmin,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const { role, department, title } = req.body;
+
+      const filter = mongoose.isValidObjectId(id)
+        ? { _id: id }
+        : { slug: id };
+
+      const update: Record<string, unknown> = {};
+      if (role) update.shortRole = role;
+      if (title) update.role = title;
+      if (department) update.department = department;
+
+      const updated = await TeamMember.findOneAndUpdate(filter, { $set: update }, { new: true });
+      if (!updated) {
+        res.status(404).json({ success: false, message: "Team member not found" });
+        return;
+      }
+
+      res.json({
+        success: true,
+        message: "Team member updated successfully",
+        data: updated,
+      });
+    } catch (err) {
+      console.error("Update team member error:", err);
+      res.status(500).json({ success: false, message: "Failed to update team member" });
+    }
+  }
+);
+
+// DELETE /api/admin/team/:id — Delete team member from MongoDB
+router.delete(
+  "/team/:id",
+  requireAuth,
+  requireSuperAdmin,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const filter = mongoose.isValidObjectId(id)
+        ? { _id: id }
+        : { slug: id };
+
+      await TeamMember.findOneAndDelete(filter);
+      res.json({ success: true, message: "Team member removed successfully" });
+    } catch (err) {
+      console.error("Delete team member error:", err);
+      res.status(500).json({ success: false, message: "Failed to delete team member" });
     }
   }
 );

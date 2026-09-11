@@ -70,6 +70,13 @@ export function createAuth() {
         },
       },
     },
+    // Cross-site cookie configuration for Vercel deployment
+    advanced: {
+      defaultCookieAttributes: {
+        sameSite: "none",
+        secure: true,
+      },
+    },
   });
 }
 
