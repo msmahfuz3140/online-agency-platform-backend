@@ -15,6 +15,7 @@ export interface IProject extends Document {
   icon: string;
   year: string;
   badge?: string;
+  image?: string;
   order: number;
   createdAt: Date;
   updatedAt: Date;
@@ -86,6 +87,10 @@ const ProjectSchema: Schema = new Schema<IProject>(
     badge: {
       type: String,
       required: false,
+    },
+    image: {
+      type: String,
+      default: "",
     },
     order: {
       type: Number,
