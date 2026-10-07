@@ -66,4 +66,49 @@ router.get("/:id", async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * POST /api/portfolio — Create new portfolio project (Staff only)
+ */
+router.post("/", async (req: Request, res: Response) => {
+  try {
+    const data = req.body;
+    if (!data.id || !data.title) {
+      return res.status(400).json({ success: false, message: "Project id and title are required" });
+    }
+    const created = await Project.create(data);
+    return res.status(201).json({ success: true, data: created, message: "Project created successfully" });
+  } catch (error: any) {
+    console.error("Error creating project:", error);
+    return res.status(500).json({ success: false, message: error.message || "Failed to create project" });
+  }
+});
+
+/**
+ * PUT /api/portfolio/:id — Update portfolio project (Staff only)
+ */
+router.put("/:id", async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updated = await Project.findOneAndUpdate({ id }, { $set: req.body }, { new: true, upsert: true });
+    return res.status(200).json({ success: true, data: updated, message: "Project updated successfully" });
+  } catch (error: any) {
+    console.error("Error updating project:", error);
+    return res.status(500).json({ success: false, message: error.message || "Failed to update project" });
+  }
+});
+
+/**
+ * DELETE /api/portfolio/:id — Delete portfolio project (Staff only)
+ */
+router.delete("/:id", async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    await Project.findOneAndDelete({ id });
+    return res.status(200).json({ success: true, message: "Project deleted successfully" });
+  } catch (error: any) {
+    console.error("Error deleting project:", error);
+    return res.status(500).json({ success: false, message: error.message || "Failed to delete project" });
+  }
+});
+
 export default router;

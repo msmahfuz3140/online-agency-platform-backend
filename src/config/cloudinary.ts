@@ -62,17 +62,37 @@ export async function uploadToCloudinary(
   const isImage = ALLOWED_IMAGE_TYPES.includes(options.mimetype || "");
   const resourceType = options.resourceType || (isImage ? "image" : "raw");
 
+  const defaultTransformation =
+    options.transformation ||
+    (options.folder === "avatar"
+      ? [
+          { width: 400, height: 400, crop: "fill", gravity: "face" },
+          { quality: "auto:good", fetch_format: "auto" },
+        ]
+      : options.folder === "team"
+      ? [
+          { width: 600, height: 600, crop: "fill", gravity: "face" },
+          { quality: "auto:good", fetch_format: "auto" },
+        ]
+      : options.folder === "portfolio" || options.folder === "blog"
+      ? [
+          { width: 1600, height: 1200, crop: "limit" },
+          { quality: "auto:good", fetch_format: "auto" },
+        ]
+      : [
+          { width: 1600, crop: "limit" },
+          { quality: "auto:good", fetch_format: "auto" },
+        ]);
+
   const uploadOptions: UploadApiOptions = {
     folder: folderPath,
     resource_type: resourceType,
     use_filename: true,
     unique_filename: true,
     overwrite: false,
-    // Auto-quality + auto-format for images
+    // Auto-quality + auto-format + smart resizing for minimal storage and superfast load
     ...(resourceType === "image" && {
-      transformation: options.transformation || [
-        { quality: "auto:good", fetch_format: "auto" },
-      ],
+      transformation: defaultTransformation,
     }),
   };
 

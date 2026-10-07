@@ -110,17 +110,56 @@ router.get(
         total = users.length;
       }
 
+      // Aggregate how many services/projects each user has ordered
+      const userEmails = users.map((u: any) => u.email?.toLowerCase()).filter(Boolean);
+      const userIds = users.map((u: any) => (u._id ? u._id.toString() : u.id)).filter(Boolean);
+      const countsMap = new Map<string, number>();
+
+      if (userEmails.length > 0 || userIds.length > 0) {
+        try {
+          const serviceCountsAgg = await db
+            .collection("projectrequests")
+            .aggregate([
+              {
+                $match: {
+                  $or: [
+                    { clientEmail: { $in: userEmails } },
+                    { clientId: { $in: userIds } },
+                  ],
+                },
+              },
+              {
+                $group: {
+                  _id: { $toLower: "$clientEmail" },
+                  count: { $sum: 1 },
+                },
+              },
+            ])
+            .toArray();
+
+          serviceCountsAgg.forEach((item: any) => {
+            if (item._id) countsMap.set(String(item._id).toLowerCase(), item.count);
+          });
+        } catch (aggErr) {
+          console.warn("Admin users service counts aggregation warning:", aggErr);
+        }
+      }
+
       res.json({
         success: true,
-        data: users.map((u: any) => ({
-          id: u._id ? u._id.toString() : (u.id || `usr_${Date.now()}`),
-          name: u.name,
-          email: u.email,
-          role: u.role || "user",
-          isBlocked: u.isBlocked || false,
-          aiCreditsRemaining: u.aiCreditsRemaining ?? 5,
-          createdAt: u.createdAt || new Date(),
-        })),
+        data: users.map((u: any) => {
+          const userEmail = (u.email || "").toLowerCase();
+          return {
+            id: u._id ? u._id.toString() : (u.id || `usr_${Date.now()}`),
+            name: u.name,
+            email: u.email,
+            role: u.role || "user",
+            isBlocked: u.isBlocked || false,
+            aiCreditsRemaining: u.aiCreditsRemaining ?? 5,
+            servicesCount: countsMap.get(userEmail) || 0,
+            createdAt: u.createdAt || new Date(),
+          };
+        }),
         pagination: { page, limit, total, pages: Math.ceil(total / limit) || 1 },
       });
     } catch (err) {

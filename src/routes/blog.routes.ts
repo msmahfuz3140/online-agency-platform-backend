@@ -73,4 +73,49 @@ router.get("/:slug", async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * POST /api/blog — Create new blog article (Staff only)
+ */
+router.post("/", async (req: Request, res: Response) => {
+  try {
+    const data = req.body;
+    if (!data.slug || !data.title) {
+      return res.status(400).json({ success: false, message: "Blog post slug and title are required" });
+    }
+    const created = await BlogPost.create(data);
+    return res.status(201).json({ success: true, data: created, message: "Blog post created successfully" });
+  } catch (error: any) {
+    console.error("Error creating blog post:", error);
+    return res.status(500).json({ success: false, message: error.message || "Failed to create blog post" });
+  }
+});
+
+/**
+ * PUT /api/blog/:slug — Update blog article (Staff only)
+ */
+router.put("/:slug", async (req: Request, res: Response) => {
+  try {
+    const { slug } = req.params;
+    const updated = await BlogPost.findOneAndUpdate({ slug }, { $set: req.body }, { new: true, upsert: true });
+    return res.status(200).json({ success: true, data: updated, message: "Blog post updated successfully" });
+  } catch (error: any) {
+    console.error("Error updating blog post:", error);
+    return res.status(500).json({ success: false, message: error.message || "Failed to update blog post" });
+  }
+});
+
+/**
+ * DELETE /api/blog/:slug — Delete blog article (Staff only)
+ */
+router.delete("/:slug", async (req: Request, res: Response) => {
+  try {
+    const { slug } = req.params;
+    await BlogPost.findOneAndDelete({ slug });
+    return res.status(200).json({ success: true, message: "Blog post deleted successfully" });
+  } catch (error: any) {
+    console.error("Error deleting blog post:", error);
+    return res.status(500).json({ success: false, message: error.message || "Failed to delete blog post" });
+  }
+});
+
 export default router;

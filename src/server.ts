@@ -30,6 +30,10 @@ const allowedOrigins = Array.from(
   new Set([
     "http://localhost:3000",
     "http://localhost:3001",
+    "https://nxoraagency.com",
+    "https://www.nxoraagency.com",
+    "http://nxoraagency.com",
+    "http://www.nxoraagency.com",
     "https://online-agency-platform.vercel.app",
     ...(process.env.CLIENT_URL
       ? [
