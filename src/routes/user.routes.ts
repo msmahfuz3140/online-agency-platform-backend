@@ -153,9 +153,14 @@ router.post("/change-password", requireAuth, async (req: Request, res: Response)
       const client = getMongoClient();
       const db = client.db(DB_NAME);
 
-      const dbUser = await db.collection("user").findOne({
+      let dbUser = await db.collection("user").findOne({
         $or: [{ id: req.user!.id }, { _id: req.user!.id as any }, { email: req.user!.email }],
       });
+      if (!dbUser) {
+        dbUser = await db.collection("users").findOne({
+          $or: [{ id: req.user!.id }, { _id: req.user!.id as any }, { email: req.user!.email }],
+        });
+      }
 
       const userId = dbUser?.id || dbUser?._id?.toString() || req.user!.id;
 

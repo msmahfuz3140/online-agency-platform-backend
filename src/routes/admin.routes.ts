@@ -64,7 +64,7 @@ router.get(
 router.get(
   "/users",
   requireAuth,
-  requireAdmin,
+  requireStaff,
   async (req: Request, res: Response): Promise<void> => {
     try {
       const db = getDb();
@@ -219,6 +219,117 @@ router.delete(
     } catch (err) {
       console.error("Admin delete user error:", err);
       res.status(500).json({ success: false, message: "Failed to delete user" });
+    }
+  }
+);
+
+// Update user role (Superadmin / Admin only)
+router.patch(
+  "/users/:id/role",
+  requireAuth,
+  requireSuperAdmin,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const id = String(req.params.id);
+      const { role } = req.body;
+
+      const validRoles = [
+        "user",
+        "superadmin",
+        "admin",
+        "manager",
+        "developer",
+        "cyber_security",
+        "ethical_hacker",
+        "digital_marketer",
+        "graphics_designer",
+        "support",
+        "editor",
+      ];
+
+      if (!role || !validRoles.includes(role)) {
+        res.status(400).json({
+          success: false,
+          message: `Invalid role specified. Valid roles are: ${validRoles.join(", ")}`,
+        });
+        return;
+      }
+
+      const db = getDb();
+      const filter: any = mongoose.isValidObjectId(id)
+        ? { $or: [{ _id: new mongoose.Types.ObjectId(id) }, { _id: id }, { id }] }
+        : { $or: [{ _id: id }, { id }] };
+
+      await db.collection("user").updateOne(filter, {
+        $set: { role, updatedAt: new Date() },
+      });
+
+      await db.collection("users").updateOne(filter, {
+        $set: { role, updatedAt: new Date() },
+      });
+
+      // Update devUsers if matched
+      const devMatch = devUsers.find((u) => u.id === id || u.email.toLowerCase() === id.toLowerCase());
+      if (devMatch) {
+        devMatch.role = role;
+      }
+
+      // If promoted to staff role, also ensure they are in TeamMember collection
+      const targetUser =
+        (await db.collection("user").findOne(filter)) ||
+        (await db.collection("users").findOne(filter));
+
+      if (targetUser && STAFF_ROLES.includes(role)) {
+        const uEmail = (targetUser.email || "").toLowerCase().trim();
+        const existingTeam = await TeamMember.findOne({
+          $or: [{ "socialLinks.email": uEmail }, { name: targetUser.name }],
+        });
+
+        if (!existingTeam && targetUser.name) {
+          const cleanSlug = targetUser.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+          const initials = targetUser.name
+            .split(" ")
+            .map((n: string) => n[0])
+            .join("")
+            .toUpperCase()
+            .slice(0, 2);
+
+          await TeamMember.create({
+            slug: `${cleanSlug}-${Date.now().toString().slice(-4)}`,
+            name: targetUser.name,
+            role: role.replace("_", " ").toUpperCase(),
+            shortRole: role,
+            department: "Nexora Operations & Engineering",
+            institute: "Nexora Agency",
+            location: "Dhaka, Bangladesh",
+            tagline: `Specialist delivering ${role.replace("_", " ")} operations at Nexora.`,
+            bio: `${targetUser.name} is a designated ${role.replace("_", " ")} on the Nexora team.`,
+            fullBio: [`${targetUser.name} specializes in high-quality engineering and client delivery.`],
+            philosophy: "Execution and precision.",
+            initials: initials || "NX",
+            image: targetUser.image || targetUser.avatar || "",
+            gradient: "from-primary-500/20 to-surface-2",
+            roleBadgeVariant: "primary",
+            stats: [{ label: "Projects Completed", value: "1+" }],
+            coreExpertise: [],
+            featuredProjects: [],
+            skills: [],
+            categorizedSkills: [],
+            credentials: [],
+            socialLinks: { email: uEmail },
+            order: (await TeamMember.countDocuments()) + 1,
+          });
+        }
+      }
+
+      res.json({
+        success: true,
+        message: `User role has been updated to "${role}".`,
+        data: { id, role },
+      });
+    } catch (err) {
+      console.error("Admin update role error:", err);
+      res.status(500).json({ success: false, message: "Failed to update user role" });
     }
   }
 );
@@ -698,41 +809,7 @@ router.get(
     try {
       const db = getDb();
 
-      // 1. Look for staff in user collection
-      const staffUsers = await db
-        .collection("user")
-        .find({ role: { $in: STAFF_ROLES } })
-        .toArray();
-
-      // 2. Ensure all default staff members exist in database
-      for (const defaultMember of DEFAULT_STAFF) {
-        const exists = staffUsers.some((u) => u.email === defaultMember.email);
-        if (!exists) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await db.collection("user").updateOne(
-            { email: defaultMember.email } as any,
-            {
-              $setOnInsert: {
-                _id: "team_" + defaultMember.avatar.toLowerCase(),
-                name: defaultMember.name,
-                email: defaultMember.email,
-                role: defaultMember.role,
-                department: defaultMember.department,
-                title: defaultMember.title,
-                permissions: defaultMember.permissions,
-                status: defaultMember.status,
-                avatar: defaultMember.avatar,
-                isBlocked: false,
-                createdAt: new Date(),
-                aiCreditsRemaining: 100,
-              },
-            },
-            { upsert: true }
-          );
-        }
-      }
-
-      // 3. Ensure TeamMember collection has base entries seeded
+      // 1. Ensure TeamMember collection has base entries seeded
       let teamMembers = await TeamMember.find().sort({ order: 1, createdAt: 1 }).lean();
       if (!teamMembers || teamMembers.length === 0) {
         try {
@@ -746,111 +823,93 @@ router.get(
           }
           teamMembers = await TeamMember.find().sort({ order: 1, createdAt: 1 }).lean();
         } catch (seedErr) {
-          console.warn("Could not auto-seed TeamMember collection:", seedErr);
+          console.warn("Could not auto-seed TeamMember collection in /api/admin/team:", seedErr);
         }
       }
 
-      // 4. Re-fetch all staff from user collection
-      const allStaff = await db
-        .collection("user")
-        .find({ role: { $in: STAFF_ROLES } })
-        .sort({ role: 1, createdAt: 1 })
-        .toArray();
+      // 2. Fetch staff from both user and users collections
+      let staffUsers: any[] = [];
+      try {
+        const u1 = await db.collection("user").find({ role: { $in: STAFF_ROLES } }).toArray().catch(() => []);
+        const u2 = await db.collection("users").find({ role: { $in: STAFF_ROLES } }).toArray().catch(() => []);
+        staffUsers = [...u1, ...u2];
+      } catch (userErr) {
+        console.warn("Could not fetch staff from user collections:", userErr);
+      }
 
-      // 5. Sync any staff member from user collection into TeamMember collection (so website sees them)
-      for (const u of allStaff) {
-        const uEmail = (u.email || "").toLowerCase().trim();
-        const existsInTeam = teamMembers.some(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (m: any) =>
-            (m.socialLinks?.email || "").toLowerCase() === uEmail ||
-            m.name?.toLowerCase().trim() === u.name?.toLowerCase().trim()
+      // 3. Build unified combined list
+      const combinedMap = new Map<string, any>();
+
+      // A. Populate from TeamMember collection (this has all 7 core team specialists)
+      for (const m of teamMembers) {
+        const email = (m.socialLinks?.email || `${m.slug}@nexora.agency`).toLowerCase().trim();
+        const matchingStaff = staffUsers.find(
+          (u) =>
+            (u.email || "").toLowerCase().trim() === email ||
+            u.name?.toLowerCase().trim() === m.name?.toLowerCase().trim()
         );
 
-        if (!existsInTeam && u.name) {
-          const cleanSlug = u.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+        const initials = m.initials || (m.name ? m.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) : "NX");
+
+        combinedMap.set(email, {
+          id: matchingStaff?._id?.toString() || m._id?.toString() || m.slug,
+          teamMemberId: m._id?.toString(),
+          slug: m.slug,
+          name: m.name,
+          email,
+          role: matchingStaff?.role || m.shortRole || "developer",
+          department: m.department || "Computer Science & Technology (CST)",
+          title: m.role || "Team Specialist",
+          permissions: matchingStaff?.permissions || m.skills || ["manage_requests", "view_analytics"],
+          status: matchingStaff?.isBlocked ? "suspended" : (matchingStaff?.status || "active"),
+          avatar: m.image || initials,
+          createdAt: matchingStaff?.createdAt || m.createdAt || new Date(),
+        });
+      }
+
+      // B. Merge any additional staff user from user/users collection
+      for (const u of staffUsers) {
+        const email = (u.email || "").toLowerCase().trim();
+        if (email && !combinedMap.has(email)) {
           const initials = u.name
-            .split(" ")
-            .map((n: string) => n[0])
-            .join("")
-            .toUpperCase()
-            .slice(0, 2);
+            ? u.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
+            : "ST";
 
-          try {
-            await TeamMember.create({
-              slug: `${cleanSlug}-${Date.now().toString().slice(-4)}`,
-              name: u.name,
-              role: u.title || u.role || "Team Specialist",
-              shortRole: u.role || "Developer",
-              department: u.department || "Computer Science & Technology (CST)",
-              institute: "Nexora Agency",
-              location: "Dhaka, Bangladesh",
-              tagline: "Specialist delivering next-generation digital platforms at Nexora.",
-              bio: `${u.name} is an active ${u.title || u.role} on the Nexora engineering and operations team.`,
-              fullBio: [`${u.name} specializes in delivering high-performance, resilient enterprise systems.`],
-              philosophy: "Building resilient and high-velocity digital solutions.",
-              initials: initials || "NX",
-              image: u.avatar || "",
-              gradient: "from-primary-500/20 to-surface-2",
-              roleBadgeVariant: "primary",
-              stats: [{ label: "Projects Completed", value: "5+" }],
-              coreExpertise: [
-                {
-                  title: u.title || u.role || "Engineering",
-                  description: "Core discipline contributor",
-                  badge: u.role || "Developer",
-                  highlightSkills: u.permissions || [],
-                },
-              ],
-              featuredProjects: [],
-              skills: u.permissions || [],
-              categorizedSkills: [],
-              credentials: [],
-              socialLinks: { email: uEmail },
-              order: (await TeamMember.countDocuments()) + 1,
-            });
-          } catch (createErr) {
-            console.warn("Could not create TeamMember during admin team sync:", createErr);
-          }
+          combinedMap.set(email, {
+            id: u._id?.toString() || `staff_${Date.now()}`,
+            teamMemberId: undefined,
+            slug: (u.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+            name: u.name,
+            email,
+            role: u.role || "developer",
+            department: u.department || "Nexora Operations & Engineering",
+            title: u.title || "Staff Specialist",
+            permissions: u.permissions || ["manage_requests", "view_analytics"],
+            status: u.isBlocked ? "suspended" : (u.status || "active"),
+            avatar: u.avatar || u.image || initials,
+            createdAt: u.createdAt || new Date(),
+          });
         }
       }
 
-      // 6. Refresh TeamMember documents
-      const refreshedTeamMembers = await TeamMember.find().sort({ order: 1, createdAt: 1 }).lean();
+      let data = Array.from(combinedMap.values());
 
-      // 7. Format unified response for Admin Panel
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data = allStaff.map((u: any) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const matchingTeam = refreshedTeamMembers.find((m: any) =>
-          (m.socialLinks?.email || "").toLowerCase() === (u.email || "").toLowerCase().trim() ||
-          m.name?.toLowerCase().trim() === u.name?.toLowerCase().trim()
-        );
-
-        const initials = u.name
-          ? u.name
-              .split(" ")
-              .map((n: string) => n[0])
-              .join("")
-              .toUpperCase()
-              .slice(0, 2)
-          : "TM";
-
-        return {
-          id: u._id,
-          teamMemberId: matchingTeam?._id?.toString(),
-          slug: matchingTeam?.slug,
-          name: u.name,
-          email: u.email,
-          role: u.role || "developer",
-          department: u.department || matchingTeam?.department || "Computer Science & Technology (CST)",
-          title: u.title || matchingTeam?.role || "Staff Specialist",
-          permissions: u.permissions || ["manage_requests", "view_analytics"],
-          status: u.isBlocked ? "suspended" : (u.status || "active"),
-          avatar: u.avatar || matchingTeam?.image || initials,
-          createdAt: u.createdAt || new Date(),
-        };
-      });
+      // C. Safe fallback if still empty
+      if (data.length === 0) {
+        data = DEFAULT_STAFF.map((s, idx) => ({
+          id: `default_${idx}`,
+          slug: s.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+          name: s.name,
+          email: s.email,
+          role: s.role,
+          department: s.department,
+          title: s.title,
+          permissions: s.permissions,
+          status: s.status,
+          avatar: s.avatar,
+          createdAt: new Date(),
+        }));
+      }
 
       res.json({ success: true, data });
     } catch (err) {

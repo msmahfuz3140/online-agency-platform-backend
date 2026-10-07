@@ -3,6 +3,7 @@ import { getAuth } from "../config/auth.js";
 import { fromNodeHeaders } from "better-auth/node";
 
 import mongoose from "mongoose";
+import { devUsers } from "../routes/auth-fallback.routes.js";
 
 // Extend Express Request to carry user session
 declare global {
@@ -35,7 +36,10 @@ export async function requireAuth(
   res: Response,
   next: NextFunction
 ): Promise<void> {
-  const isDev = !process.env.NODE_ENV || process.env.NODE_ENV === "development";
+  const MAIN_ADMIN_EMAILS = [
+    "mdmahfuzulhaque3140@gmail.com",
+    "mdmahfuzulhaque314@gmail.com",
+  ];
 
   // 1. Try Better Auth session from cookies
   try {
@@ -45,11 +49,12 @@ export async function requireAuth(
     });
 
     if (session?.user) {
-      const role = (session.user.role || "user").toLowerCase();
-      const isFounder = session.user.email?.toLowerCase().includes("mahfuz");
+      const emailLower = session.user.email?.toLowerCase() || "";
+      const isMainAdmin = MAIN_ADMIN_EMAILS.includes(emailLower);
+      const role = isMainAdmin ? "superadmin" : (session.user.role || "user").toLowerCase();
       req.user = {
         ...session.user,
-        role: isFounder ? "superadmin" : role,
+        role,
       } as Request["user"];
       req.session = session.session as Request["session"];
       next();
@@ -65,11 +70,55 @@ export async function requireAuth(
   const headerRole = (req.headers["x-user-role"] as string)?.trim().toLowerCase();
   const authHeader = req.headers.authorization;
   const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
+  const sessionTokenHeader = (req.headers["x-session-token"] as string)?.trim();
+  const effectiveToken = bearerToken || sessionTokenHeader;
 
-  if (headerEmail || headerId || bearerToken || headerRole) {
+  if (effectiveToken || headerEmail || headerId) {
     try {
       const db = mongoose.connection.db;
       if (db) {
+        // If session token provided, look up active session document
+        if (effectiveToken) {
+          const sessionDoc = await db.collection("session").findOne({ token: effectiveToken });
+          if (sessionDoc && new Date(sessionDoc.expiresAt) > new Date()) {
+            const userFilter: any = {
+              $or: [
+                { _id: sessionDoc.userId },
+                { id: sessionDoc.userId },
+              ],
+            };
+            if (mongoose.isValidObjectId(sessionDoc.userId)) {
+              userFilter.$or.push({ _id: new mongoose.Types.ObjectId(sessionDoc.userId) });
+            }
+
+            let sessionUser = await db.collection("user").findOne(userFilter);
+            if (!sessionUser) {
+              sessionUser = await db.collection("users").findOne(userFilter);
+            }
+
+            if (sessionUser) {
+              const emailLower = sessionUser.email?.toLowerCase() || "";
+              const isMainAdmin = MAIN_ADMIN_EMAILS.includes(emailLower);
+              const role = isMainAdmin ? "superadmin" : (sessionUser.role || "user").toLowerCase();
+              req.user = {
+                id: sessionUser._id.toString(),
+                name: sessionUser.name,
+                email: sessionUser.email,
+                role,
+                aiCreditsRemaining: sessionUser.aiCreditsRemaining ?? 5,
+              };
+              req.session = {
+                id: sessionDoc._id.toString(),
+                userId: sessionDoc.userId.toString(),
+                expiresAt: sessionDoc.expiresAt,
+              };
+              next();
+              return;
+            }
+          }
+        }
+
+        // Look up by header email or id
         const filter: any = {};
         if (headerEmail) {
           filter.email = { $regex: new RegExp(`^${headerEmail}$`, "i") };
@@ -85,17 +134,15 @@ export async function requireAuth(
         }
 
         if (dbUser) {
-          const role = (dbUser.role || headerRole || "user").toLowerCase();
-          const isFounder =
-            dbUser.email?.toLowerCase().includes("mahfuz") ||
-            role === "superadmin" ||
-            role === "admin";
+          const emailLower = dbUser.email?.toLowerCase() || "";
+          const isMainAdmin = MAIN_ADMIN_EMAILS.includes(emailLower);
+          const role = isMainAdmin ? "superadmin" : (dbUser.role || "user").toLowerCase();
 
           req.user = {
             id: dbUser._id.toString(),
             name: dbUser.name,
             email: dbUser.email,
-            role: isFounder ? "superadmin" : role,
+            role,
             aiCreditsRemaining: dbUser.aiCreditsRemaining ?? 5,
           };
           req.session = {
@@ -108,22 +155,45 @@ export async function requireAuth(
         }
       }
 
-      // Auto-promote founder or admin role to superadmin
-      if (
-        (headerEmail && headerEmail.includes("mahfuz")) ||
-        headerRole === "superadmin" ||
-        headerRole === "admin"
-      ) {
+      // 3. Fallback to dev users in memory
+      const devMatch = devUsers.find(
+        (u) =>
+          (headerEmail && u.email.toLowerCase() === headerEmail) ||
+          (headerId && u.id === headerId)
+      );
+
+      if (devMatch) {
+        const emailLower = devMatch.email.toLowerCase();
+        const isMainAdmin = MAIN_ADMIN_EMAILS.includes(emailLower);
+        const role = isMainAdmin ? "superadmin" : (devMatch.role || "user").toLowerCase();
         req.user = {
-          id: headerId || "founder-superadmin",
-          name: "MD Mahfuzul Haque",
-          email: headerEmail || "mdmahfuzulhaque3140@gmail.com",
-          role: headerRole || "superadmin",
+          id: devMatch.id,
+          name: devMatch.name,
+          email: devMatch.email,
+          role,
+          aiCreditsRemaining: devMatch.aiCreditsRemaining,
+        };
+        req.session = {
+          id: `sess_${devMatch.id}`,
+          userId: devMatch.id,
+          expiresAt: new Date(Date.now() + 86400000 * 7),
+        };
+        next();
+        return;
+      }
+
+      // If header is main admin email directly
+      if (headerEmail && MAIN_ADMIN_EMAILS.includes(headerEmail)) {
+        req.user = {
+          id: headerId || "admin_super_mahfuz",
+          name: "MD.MAHFUZUL HAQUE",
+          email: headerEmail,
+          role: "superadmin",
           aiCreditsRemaining: 999,
         };
         req.session = {
-          id: "founder-session",
-          userId: headerId || "founder-superadmin",
+          id: "sess_main_admin",
+          userId: headerId || "admin_super_mahfuz",
           expiresAt: new Date(Date.now() + 86400000 * 7),
         };
         next();
@@ -134,32 +204,7 @@ export async function requireAuth(
     }
   }
 
-  // 3. Fallback for local development or authenticated requests from official frontend origin
-  const origin = req.headers.origin || req.headers.referer;
-  if (
-    isDev ||
-    (origin &&
-      (origin.includes("online-agency-platform.vercel.app") ||
-        origin.includes("nxoraagency.com") ||
-        origin.includes("localhost")))
-  ) {
-    req.user = {
-      id: "founder-superadmin",
-      name: "MD Mahfuzul Haque",
-      email: "mdmahfuzulhaque3140@gmail.com",
-      role: "superadmin",
-      aiCreditsRemaining: 999,
-    };
-    req.session = {
-      id: "founder-session",
-      userId: "founder-superadmin",
-      expiresAt: new Date(Date.now() + 86400000),
-    };
-    next();
-    return;
-  }
-
-  res.status(401).json({ success: false, message: "Unauthorized" });
+  res.status(401).json({ success: false, message: "Unauthorized: Please log in to proceed." });
 }
 
 export const STAFF_ROLES = [
@@ -177,7 +222,7 @@ export const STAFF_ROLES = [
 export const ADMIN_ROLES = ["superadmin", "admin"];
 
 /**
- * Require the authenticated user to be a staff member (superadmin, admin, manager, support, developer, editor).
+ * Require the authenticated user to be a staff member (superadmin, admin, manager, support, developer, editor, etc.).
  */
 export function requireStaff(
   req: Request,
@@ -185,10 +230,12 @@ export function requireStaff(
   next: NextFunction
 ): void {
   const role = (req.user?.role || "").toLowerCase();
-  const isDev = !process.env.NODE_ENV || process.env.NODE_ENV === "development";
 
-  if (!req.user || (!STAFF_ROLES.includes(role) && !isDev)) {
-    res.status(403).json({ success: false, message: "Forbidden: Staff access only" });
+  if (!req.user || !STAFF_ROLES.includes(role)) {
+    res.status(403).json({
+      success: false,
+      message: "Forbidden: Staff member access required for this resource.",
+    });
     return;
   }
   next();
@@ -204,10 +251,12 @@ export function requireAdmin(
   next: NextFunction
 ): void {
   const role = (req.user?.role || "").toLowerCase();
-  const isDev = !process.env.NODE_ENV || process.env.NODE_ENV === "development";
 
-  if (!req.user || (!ADMIN_ROLES.includes(role) && !isDev)) {
-    res.status(403).json({ success: false, message: "Forbidden: Admins only" });
+  if (!req.user || !ADMIN_ROLES.includes(role)) {
+    res.status(403).json({
+      success: false,
+      message: "Forbidden: Administrator privileges required.",
+    });
     return;
   }
   next();
@@ -223,10 +272,12 @@ export function requireSuperAdmin(
   next: NextFunction
 ): void {
   const role = (req.user?.role || "").toLowerCase();
-  const isDev = !process.env.NODE_ENV || process.env.NODE_ENV === "development";
 
-  if (!req.user || (role !== "superadmin" && !ADMIN_ROLES.includes(role) && !isDev)) {
-    res.status(403).json({ success: false, message: "Forbidden: Superadmin access required" });
+  if (!req.user || (role !== "superadmin" && !ADMIN_ROLES.includes(role))) {
+    res.status(403).json({
+      success: false,
+      message: "Forbidden: Superadmin access required.",
+    });
     return;
   }
   next();

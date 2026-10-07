@@ -33,12 +33,12 @@ export interface DevUser {
 
 export const devUsers: DevUser[] = [
   {
-    id: "usr_admin_default",
-    name: "Mahfuz Admin",
-    email: "admin@nexora.agency",
-    passwordHash: "Admin123!",
-    role: "admin",
-    aiCreditsRemaining: 100,
+    id: "admin_super_mahfuz",
+    name: "MD.MAHFUZUL HAQUE",
+    email: "mdmahfuzulhaque3140@gmail.com",
+    passwordHash: "Ms31403140@@",
+    role: "superadmin",
+    aiCreditsRemaining: 999,
     createdAt: new Date(),
   },
   {

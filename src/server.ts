@@ -151,6 +151,58 @@ app.use("/api/auth", otpRoutes);
 app.all("/api/auth/*", (req: Request, res: Response, next) => {
   try {
     const auth = getAuth();
+
+    // If OAuth callback, intercept redirect so session_token is attached to callbackURL for cross-domain cookie resilience
+    if (req.path.includes("/callback/")) {
+      const origSetHeader = res.setHeader.bind(res);
+      res.setHeader = function (name: string, value: any): any {
+        if (name.toLowerCase() === "location" && typeof value === "string") {
+          try {
+            const cookieHeader = res.getHeader("set-cookie");
+            if (cookieHeader && !value.includes("session_token=")) {
+              const rawCookies = Array.isArray(cookieHeader) ? cookieHeader : [String(cookieHeader)];
+              for (const c of rawCookies) {
+                const match = c.match(/better-auth\.session_token=([^;.]+)/);
+                if (match && match[1]) {
+                  const token = match[1];
+                  const joiner = value.includes("?") ? "&" : "?";
+                  value = `${value}${joiner}session_token=${token}`;
+                  break;
+                }
+              }
+            }
+          } catch (e) {
+            console.warn("Could not attach session_token in setHeader Location:", e);
+          }
+        }
+        return origSetHeader(name, value);
+      };
+
+      const origRedirect = res.redirect.bind(res);
+      res.redirect = function (first: any, second?: any): any {
+        let redirectUrl = typeof first === "string" ? first : (second as string);
+        const statusCode = typeof first === "number" ? first : 302;
+        try {
+          const cookieHeader = res.getHeader("set-cookie");
+          if (cookieHeader && redirectUrl && !redirectUrl.includes("session_token=")) {
+            const rawCookies = Array.isArray(cookieHeader) ? cookieHeader : [String(cookieHeader)];
+            for (const c of rawCookies) {
+              const match = c.match(/better-auth\.session_token=([^;.]+)/);
+              if (match && match[1]) {
+                const token = match[1];
+                const joiner = redirectUrl.includes("?") ? "&" : "?";
+                redirectUrl = `${redirectUrl}${joiner}session_token=${token}`;
+                break;
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("Could not attach session_token in res.redirect:", e);
+        }
+        return origRedirect(statusCode, redirectUrl);
+      };
+    }
+
     return toNodeHandler(auth.handler)(req, res);
   } catch {
     return authFallbackRoutes(req, res, next);

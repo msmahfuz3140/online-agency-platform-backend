@@ -2,6 +2,8 @@ import Service from "../models/Service.js";
 import Project from "../models/Project.js";
 import TeamMember from "../models/TeamMember.js";
 import BlogPost from "../models/BlogPost.js";
+import { getMongoClient } from "./db.js";
+import { hashPassword } from "better-auth/crypto";
 
 import { servicesData } from "../data/services.data.js";
 import { projectsData } from "../data/projects.data.js";
@@ -9,10 +11,125 @@ import { teamMembersData } from "../data/team.data.js";
 import { blogPosts } from "../data/blog.data.js";
 
 /**
+ * Ensures the primary superadmin account is always seeded and verified in MongoDB.
+ */
+export async function seedMainAdmin(): Promise<void> {
+  const adminEmails = ["mdmahfuzulhaque3140@gmail.com", "mdmahfuzulhaque314@gmail.com"];
+  const adminPass = "Ms31403140@@";
+  const adminName = "MD.MAHFUZUL HAQUE";
+  const adminRole = "superadmin";
+
+  try {
+    const client = getMongoClient();
+    const db = client.db(process.env.MONGODB_DB_NAME || "agency-platform");
+
+    let hashedPassword = adminPass;
+    try {
+      hashedPassword = await hashPassword(adminPass);
+    } catch (hErr) {
+      console.warn("Could not hash admin password with crypto:", hErr);
+    }
+
+    for (const adminEmail of adminEmails) {
+      let userDoc = await db.collection("user").findOne({ email: adminEmail });
+      if (!userDoc) {
+        userDoc = await db.collection("users").findOne({ email: adminEmail });
+      }
+
+      const userId = userDoc?._id?.toString() || userDoc?.id || `admin_${Date.now()}`;
+      const userObjId = userDoc?._id;
+
+      // 1. Upsert into "user" collection
+      await db.collection("user").updateOne(
+        { email: adminEmail },
+        {
+          $set: {
+            id: userId,
+            name: adminName,
+            email: adminEmail,
+            role: adminRole,
+            aiCreditsRemaining: 999,
+            updatedAt: new Date(),
+          },
+          $setOnInsert: {
+            _id: userObjId || (userId as any),
+            emailVerified: true,
+            image: null,
+            createdAt: new Date(),
+          },
+        },
+        { upsert: true }
+      );
+
+      // 2. Also upsert into "users" collection (for plural compatibility)
+      await db.collection("users").updateOne(
+        { email: adminEmail },
+        {
+          $set: {
+            id: userId,
+            name: adminName,
+            email: adminEmail,
+            role: adminRole,
+            aiCreditsRemaining: 999,
+            updatedAt: new Date(),
+          },
+          $setOnInsert: {
+            _id: userObjId || (userId as any),
+            emailVerified: true,
+            createdAt: new Date(),
+          },
+        },
+        { upsert: true }
+      );
+
+      // 3. Ensure credentials accounts in "account" collection
+      const filterConditions: any[] = [
+        { accountId: adminEmail, providerId: "credential" },
+        { userId: userId, providerId: "credential" },
+      ];
+      if (userObjId) {
+        filterConditions.push({ userId: userObjId, providerId: "credential" });
+        filterConditions.push({ accountId: userObjId.toString(), providerId: "credential" });
+      }
+
+      const updateResult = await db.collection("account").updateMany(
+        { $or: filterConditions },
+        {
+          $set: {
+            password: hashedPassword,
+            updatedAt: new Date(),
+          },
+        }
+      );
+
+      if (updateResult.matchedCount === 0) {
+        await db.collection("account").insertOne({
+          _id: `acc_admin_${Date.now()}` as any,
+          id: `acc_admin_${userId}`,
+          userId: userObjId || userId,
+          accountId: userId,
+          providerId: "credential",
+          password: hashedPassword,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
+
+      console.log(`👑 [MAIN ADMIN VERIFIED] ${adminEmail} (Role: ${adminRole}) configured with credentials.`);
+    }
+  } catch (err) {
+    console.error("❌ Error seeding main admin account:", err);
+  }
+}
+
+/**
  * Automatically seeds or updates the database idempotently.
  */
 export async function autoSeedDatabase(): Promise<void> {
   try {
+    // 0. Seed Main Admin Credentials
+    await seedMainAdmin();
+
     // 1. Seed / Upsert Services
     const serviceCount = await Service.countDocuments();
     if (serviceCount < servicesData.length) {
