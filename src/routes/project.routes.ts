@@ -17,6 +17,18 @@ router.get("/", async (req: Request, res: Response) => {
       filter.category = category;
     }
 
+    // Ensure any new catalog projects (such as live client stores) are synced into DB
+    const totalCount = await Project.countDocuments();
+    if (totalCount < projectsData.length) {
+      for (const p of projectsData) {
+        await Project.findOneAndUpdate(
+          { id: p.id },
+          { $set: p },
+          { upsert: true, new: true }
+        );
+      }
+    }
+
     const projects = await Project.find(filter).sort({ order: 1, createdAt: 1 });
 
     if (!projects || projects.length === 0) {
