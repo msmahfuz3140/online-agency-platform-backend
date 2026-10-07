@@ -1000,11 +1000,26 @@ router.patch(
   async (req: Request, res: Response): Promise<void> => {
     try {
       const db = getDb();
-      const { id } = req.params;
+      const rawId = req.params.id;
+      const id = Array.isArray(rawId) ? rawId[0] : String(rawId);
       const { role, department, title, permissions, status } = req.body;
 
+      const idFilter = {
+        $or: [
+          { _id: id },
+          ...(mongoose.isValidObjectId(id) ? [{ _id: new mongoose.Types.ObjectId(id) }] : []),
+        ],
+      };
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const user = await db.collection("user").findOne({ _id: id } as any);
+      let user = await db.collection("user").findOne(idFilter as any);
+      let targetColl = "user";
+      if (!user) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        user = await db.collection("users").findOne(idFilter as any);
+        targetColl = "users";
+      }
+
       if (!user) {
         res.status(404).json({ success: false, message: "Team member not found" });
         return;
@@ -1021,7 +1036,7 @@ router.patch(
       }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await db.collection("user").updateOne({ _id: id } as any, { $set: updateFields });
+      await db.collection(targetColl).updateOne({ _id: user._id } as any, { $set: updateFields });
 
       // Update TeamMember collection as well
       try {
@@ -1062,27 +1077,38 @@ router.delete(
   async (req: Request, res: Response): Promise<void> => {
     try {
       const db = getDb();
-      const { id } = req.params;
+      const rawId = req.params.id;
+      const id = Array.isArray(rawId) ? rawId[0] : String(rawId);
+
+      const idFilter = {
+        $or: [
+          { _id: id },
+          ...(mongoose.isValidObjectId(id) ? [{ _id: new mongoose.Types.ObjectId(id) }] : []),
+        ],
+      };
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const user = await db.collection("user").findOne({ _id: id } as any);
+      let user = await db.collection("user").findOne(idFilter as any);
+      let targetColl = "user";
+      if (!user) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        user = await db.collection("users").findOne(idFilter as any);
+        targetColl = "users";
+      }
 
-      // Demote to client/user rather than deleting the account completely
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await db.collection("user").updateOne(
-        { _id: id } as any,
-        {
-          $set: {
-            role: "user",
-            permissions: [],
-            status: "inactive",
-          },
-        }
-      );
-
-      if (result.matchedCount === 0 && !mongoose.isValidObjectId(id)) {
-        res.status(404).json({ success: false, message: "Team member not found" });
-        return;
+      if (user) {
+        // Demote to client/user rather than deleting the account completely
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await db.collection(targetColl).updateOne(
+          { _id: user._id } as any,
+          {
+            $set: {
+              role: "user",
+              permissions: [],
+              status: "inactive",
+            },
+          }
+        );
       }
 
       // Remove from TeamMember collection so they disappear from client website

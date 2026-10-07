@@ -131,24 +131,24 @@ const TeamMemberSchema: Schema = new Schema<ITeamMember>(
     },
     stats: [
       {
-        label: { type: String, required: true },
-        value: { type: String, required: true },
+        label: { type: String, default: "" },
+        value: { type: String, default: "" },
       },
     ],
     coreExpertise: [
       {
-        title: { type: String, required: true },
-        description: { type: String, required: true },
-        badge: { type: String, required: true },
+        title: { type: String, default: "Engineering" },
+        description: { type: String, default: "Core discipline contributor" },
+        badge: { type: String, default: "Specialist" },
         highlightSkills: { type: [String], default: [] },
       },
     ],
     featuredProjects: [
       {
-        title: { type: String, required: true },
-        role: { type: String, required: true },
-        description: { type: String, required: true },
-        metrics: { type: String, required: true },
+        title: { type: String, default: "" },
+        role: { type: String, default: "" },
+        description: { type: String, default: "" },
+        metrics: { type: String, default: "" },
         tech: { type: [String], default: [] },
       },
     ],
@@ -158,15 +158,15 @@ const TeamMemberSchema: Schema = new Schema<ITeamMember>(
     },
     categorizedSkills: [
       {
-        category: { type: String, required: true },
+        category: { type: String, default: "General" },
         items: { type: [String], default: [] },
       },
     ],
     credentials: [
       {
-        degree: { type: String, required: true },
-        institution: { type: String, required: true },
-        period: { type: String, required: true },
+        degree: { type: String, default: "" },
+        institution: { type: String, default: "" },
+        period: { type: String, default: "" },
         description: { type: String, default: "" },
         type: { type: String, enum: ["degree", "certification"], default: "degree" },
       },

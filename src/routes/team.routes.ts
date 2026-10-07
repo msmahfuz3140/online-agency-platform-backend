@@ -49,10 +49,18 @@ router.get("/", async (_req: Request, res: Response) => {
       const db = mongoose.connection.db;
       if (db) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const staffUsers = await db
+        const staffUsers1 = await db
           .collection("user")
           .find({ role: { $in: STAFF_ROLES } } as any)
-          .toArray();
+          .toArray()
+          .catch(() => []);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const staffUsers2 = await db
+          .collection("users")
+          .find({ role: { $in: STAFF_ROLES } } as any)
+          .toArray()
+          .catch(() => []);
+        const staffUsers = [...staffUsers1, ...staffUsers2];
 
         let updated = false;
         for (const u of staffUsers) {

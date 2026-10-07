@@ -140,6 +140,7 @@ export async function requireAuth(
     isDev ||
     (origin &&
       (origin.includes("online-agency-platform.vercel.app") ||
+        origin.includes("nxoraagency.com") ||
         origin.includes("localhost")))
   ) {
     req.user = {
